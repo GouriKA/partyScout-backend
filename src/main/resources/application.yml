@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: partyScout
+
+server:
+  port: ${SERVER_PORT:8080}
+
+google:
+  places:
+    api-key: "AIzaSyBioT6R5FaQcgDP11OjIV0QtEu2JwYkOBI"
+    base-url: https://maps.googleapis.com/maps/api/place
+
+# Logging configuration
+logging:
+  level:
+    com.partyscout: INFO
+    org.springframework.web: INFO
+
+# Jackson configuration for JSON serialization
+spring.jackson:
+  serialization:
+    write-dates-as-timestamps: false
+  time-zone: UTC
