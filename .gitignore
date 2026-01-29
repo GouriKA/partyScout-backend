@@ -37,3 +37,8 @@ bin/
 .env
 .env.local
 .env.*.local
+
+# Service Account Keys (never commit!)
+sa-key.json
+*-sa-key.json
+*.pem

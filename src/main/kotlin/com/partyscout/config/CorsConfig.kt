@@ -14,11 +14,13 @@ class CorsConfig {
         val source = UrlBasedCorsConfigurationSource()
         val config = CorsConfiguration()
 
-        // Allow frontend origins (local dev + Cloud Run)
+        // Allow frontend origins (local dev + Cloud Run + Cloud Storage)
         config.allowedOriginPatterns = listOf(
             "http://localhost:5173",
             "http://localhost:3000",
-            "https://*.run.app"
+            "https://*.run.app",
+            "https://storage.googleapis.com",
+            "https://*.storage.googleapis.com"
         )
 
         // Allow all HTTP methods
