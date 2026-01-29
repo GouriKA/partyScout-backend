@@ -7,7 +7,7 @@ server:
 
 google:
   places:
-    api-key: "AIzaSyBioT6R5FaQcgDP11OjIV0QtEu2JwYkOBI"
+    api-key: ${GOOGLE_PLACES_API_KEY:}
     base-url: https://maps.googleapis.com/maps/api/place
 
 # Logging configuration

@@ -14,8 +14,12 @@ class CorsConfig {
         val source = UrlBasedCorsConfigurationSource()
         val config = CorsConfiguration()
 
-        // Allow frontend origin (Vite default port)
-        config.allowedOrigins = listOf("http://localhost:5173", "http://localhost:3000")
+        // Allow frontend origins (local dev + Cloud Run)
+        config.allowedOriginPatterns = listOf(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://*.run.app"
+        )
 
         // Allow all HTTP methods
         config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")

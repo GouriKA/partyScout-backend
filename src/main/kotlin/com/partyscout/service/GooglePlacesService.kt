@@ -76,7 +76,7 @@ class GooglePlacesService(
             .post()
             .uri("https://places.googleapis.com/v1/places:searchNearby")
             .header("X-Goog-Api-Key", googlePlacesConfig.apiKey)
-            .header("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.googleMapsUri,places.websiteUri,places.internationalPhoneNumber")
+            .header("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.googleMapsUri,places.websiteUri,places.internationalPhoneNumber,places.photos,places.currentOpeningHours")
             .bodyValue(request)
             .retrieve()
             .bodyToMono<SearchNearbyResponse>()
