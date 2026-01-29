@@ -54,3 +54,8 @@ kotlin {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// Disable plain jar - only produce the Spring Boot executable jar
+tasks.named<Jar>("jar") {
+    enabled = false
+}
