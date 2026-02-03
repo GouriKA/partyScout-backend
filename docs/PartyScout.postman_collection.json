@@ -1,0 +1,226 @@
+{
+  "info": {
+    "_postman_id": "partyscout-api-collection",
+    "name": "PartyScout API",
+    "description": "API collection for PartyScout birthday party planning application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://partyscout-backend-869352526308.us-central1.run.app",
+      "type": "string"
+    },
+    {
+      "key": "localUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Party Wizard",
+      "description": "Party planning wizard endpoints",
+      "item": [
+        {
+          "name": "Search Venues",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"age\": 7,\n  \"partyTypes\": [\"active_play\"],\n  \"guestCount\": 15,\n  \"budgetMin\": 200,\n  \"budgetMax\": 500,\n  \"zipCode\": \"94105\",\n  \"setting\": \"indoor\",\n  \"maxDistanceMiles\": 10,\n  \"date\": \"2026-03-15T14:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "search"]
+            },
+            "description": "Search for party venues based on criteria"
+          },
+          "response": [
+            {
+              "name": "Successful Search",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"venues\": [\n    {\n      \"id\": \"ChIJN1t_tDeuEmsRUsoyG83frY4\",\n      \"name\": \"Sky Zone Trampoline Park\",\n      \"address\": \"123 Jump St, San Francisco, CA 94105\",\n      \"rating\": 4.5,\n      \"matchScore\": 87,\n      \"estimatedTotal\": 350\n    }\n  ],\n  \"searchCriteria\": {\n    \"location\": \"San Francisco, CA\",\n    \"totalResults\": 12\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Search Venues - Multiple Types",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"age\": 10,\n  \"partyTypes\": [\"amusement\", \"active_play\"],\n  \"guestCount\": 20,\n  \"budgetMax\": 600,\n  \"zipCode\": \"10001\",\n  \"setting\": \"any\",\n  \"maxDistanceMiles\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "search"]
+            },
+            "description": "Search with multiple party types"
+          }
+        },
+        {
+          "name": "Search Venues - Outdoor Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"age\": 5,\n  \"partyTypes\": [\"outdoor\"],\n  \"guestCount\": 25,\n  \"budgetMax\": 400,\n  \"zipCode\": \"90210\",\n  \"setting\": \"outdoor\",\n  \"maxDistanceMiles\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "search"]
+            },
+            "description": "Search for outdoor venues only"
+          }
+        },
+        {
+          "name": "Get Party Types - Age 7",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/party-types/7",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "party-types", "7"]
+            },
+            "description": "Get party type suggestions for a 7-year-old"
+          },
+          "response": [
+            {
+              "name": "Party Types for Age 7",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"type\": \"active_play\",\n    \"displayName\": \"Active Play\",\n    \"description\": \"Jump, run, and burn energy with physical fun\",\n    \"icon\": \"rocket\",\n    \"ageRange\": \"Ages 3-16\",\n    \"averageCost\": \"$200-450\",\n    \"popularityScore\": 5\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Party Types - Age 3 (Toddler)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/party-types/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "party-types", "3"]
+            },
+            "description": "Get party type suggestions for a 3-year-old toddler"
+          }
+        },
+        {
+          "name": "Get Party Types - Age 14 (Teen)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/party-types/14",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "party-types", "14"]
+            },
+            "description": "Get party type suggestions for a 14-year-old teen"
+          }
+        },
+        {
+          "name": "Estimate Budget",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partyType\": \"active_play\",\n  \"guestCount\": 15,\n  \"priceLevel\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/party-wizard/estimate-budget",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "party-wizard", "estimate-budget"]
+            },
+            "description": "Estimate budget for a party configuration"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health & Debug",
+      "description": "Health check and debugging endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Check if the API is healthy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Local Development",
+      "description": "Requests configured for local development",
+      "item": [
+        {
+          "name": "[Local] Search Venues",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"age\": 7,\n  \"partyTypes\": [\"active_play\"],\n  \"guestCount\": 15,\n  \"zipCode\": \"94105\"\n}"
+            },
+            "url": {
+              "raw": "{{localUrl}}/api/v2/party-wizard/search",
+              "host": ["{{localUrl}}"],
+              "path": ["api", "v2", "party-wizard", "search"]
+            },
+            "description": "Search venues on local server"
+          }
+        },
+        {
+          "name": "[Local] Get Party Types",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{localUrl}}/api/v2/party-wizard/party-types/7",
+              "host": ["{{localUrl}}"],
+              "path": ["api", "v2", "party-wizard", "party-types", "7"]
+            },
+            "description": "Get party types on local server"
+          }
+        }
+      ]
+    }
+  ]
+}

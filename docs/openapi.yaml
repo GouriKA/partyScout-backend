@@ -1,0 +1,446 @@
+openapi: 3.0.3
+info:
+  title: PartyScout API
+  description: |
+    API for the PartyScout birthday party planning application.
+
+    PartyScout helps parents find the perfect venue for their child's birthday party
+    based on age, preferences, budget, and location.
+  version: 2.1.0
+  contact:
+    name: PartyScout Support
+    url: https://github.com/GouriKA/partyScout-backend
+  license:
+    name: Private
+    url: https://github.com/GouriKA/partyScout-backend
+
+servers:
+  - url: https://partyscout-backend-869352526308.us-central1.run.app
+    description: Production server
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Party Wizard
+    description: Party planning wizard endpoints
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /api/v2/party-wizard/search:
+    post:
+      tags:
+        - Party Wizard
+      summary: Search for party venues
+      description: |
+        Search for venues based on party criteria including age, party type,
+        budget, location, and preferences. Returns venues with match scores.
+      operationId: searchVenues
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartySearchRequest'
+            examples:
+              basic:
+                summary: Basic search
+                value:
+                  age: 7
+                  partyTypes: ["active_play"]
+                  guestCount: 15
+                  zipCode: "94105"
+              full:
+                summary: Full search with all options
+                value:
+                  age: 7
+                  partyTypes: ["active_play", "amusement"]
+                  guestCount: 15
+                  budgetMin: 200
+                  budgetMax: 500
+                  zipCode: "94105"
+                  setting: "indoor"
+                  maxDistanceMiles: 10
+                  date: "2026-03-15T14:00:00"
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartySearchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/party-wizard/party-types/{age}:
+    get:
+      tags:
+        - Party Wizard
+      summary: Get party types for age
+      description: |
+        Returns party type suggestions appropriate for a specific age.
+        Results are sorted by popularity score for the given age.
+      operationId: getPartyTypesForAge
+      parameters:
+        - name: age
+          in: path
+          required: true
+          description: Child's age (1-18)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 18
+          example: 7
+      responses:
+        '200':
+          description: List of party type suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartyTypeSuggestion'
+        '400':
+          description: Invalid age parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/party-wizard/estimate-budget:
+    post:
+      tags:
+        - Party Wizard
+      summary: Estimate party budget
+      description: Get a budget estimate for a party configuration
+      operationId: estimateBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetEstimateRequest'
+      responses:
+        '200':
+          description: Budget estimate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetEstimateResponse'
+
+components:
+  schemas:
+    PartySearchRequest:
+      type: object
+      required:
+        - age
+        - partyTypes
+        - guestCount
+        - zipCode
+      properties:
+        age:
+          type: integer
+          description: Child's age
+          minimum: 1
+          maximum: 18
+          example: 7
+        partyTypes:
+          type: array
+          items:
+            type: string
+            enum:
+              - active_play
+              - creative
+              - amusement
+              - outdoor
+              - characters_performers
+              - social_dining
+          description: List of party type codes
+          example: ["active_play", "amusement"]
+        guestCount:
+          type: integer
+          description: Number of guests expected
+          minimum: 1
+          maximum: 100
+          example: 15
+        budgetMin:
+          type: integer
+          description: Minimum budget in USD
+          minimum: 0
+          example: 200
+        budgetMax:
+          type: integer
+          description: Maximum budget in USD
+          minimum: 0
+          example: 500
+        zipCode:
+          type: string
+          description: ZIP code for location search
+          pattern: '^\d{5}$'
+          example: "94105"
+        setting:
+          type: string
+          description: Indoor/outdoor preference
+          enum:
+            - indoor
+            - outdoor
+            - any
+          default: any
+          example: indoor
+        maxDistanceMiles:
+          type: integer
+          description: Maximum travel distance in miles
+          minimum: 1
+          maximum: 50
+          default: 10
+          example: 10
+        date:
+          type: string
+          format: date-time
+          description: Party date in ISO 8601 format
+          example: "2026-03-15T14:00:00"
+
+    PartySearchResponse:
+      type: object
+      properties:
+        venues:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnhancedVenue'
+        searchCriteria:
+          $ref: '#/components/schemas/SearchCriteria'
+        partyTypeSuggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyTypeSuggestion'
+
+    EnhancedVenue:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Google Places ID
+          example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
+        name:
+          type: string
+          description: Venue name
+          example: "Sky Zone Trampoline Park"
+        address:
+          type: string
+          description: Full address
+          example: "123 Jump St, San Francisco, CA 94105"
+        phoneNumber:
+          type: string
+          description: Contact phone number
+          example: "(415) 555-0123"
+        website:
+          type: string
+          format: uri
+          description: Venue website URL
+          example: "https://skyzone.com"
+        rating:
+          type: number
+          format: float
+          description: Google rating (0-5)
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        reviewCount:
+          type: integer
+          description: Number of Google reviews
+          example: 234
+        priceLevel:
+          type: integer
+          description: Price level (1-4)
+          minimum: 1
+          maximum: 4
+          example: 2
+        setting:
+          type: string
+          enum: [indoor, outdoor]
+          description: Venue setting
+          example: indoor
+        distanceInMiles:
+          type: number
+          format: float
+          description: Distance from search location
+          example: 2.3
+        matchScore:
+          type: integer
+          description: Match score (0-100)
+          minimum: 0
+          maximum: 100
+          example: 87
+        matchReasons:
+          type: array
+          items:
+            type: string
+          description: Reasons why this venue matches
+          example: ["Great for ages 5-12", "Within your budget"]
+        estimatedTotal:
+          type: integer
+          description: Estimated total party cost
+          example: 350
+        estimatedPricePerPerson:
+          type: integer
+          description: Estimated cost per person
+          example: 23
+        includedItems:
+          type: array
+          items:
+            type: string
+          description: What's included in the party package
+          example: ["2 hours jump time", "Party room", "Party host"]
+        notIncluded:
+          type: array
+          items:
+            type: string
+          description: What's not included (bring your own)
+          example: ["Food and beverages", "Cake", "Decorations"]
+        suggestedAddOns:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddOn'
+        popularForAges:
+          type: string
+          description: Age recommendation
+          example: "Best for ages 5-12"
+        typicalPartyDuration:
+          type: string
+          description: Typical party duration
+          example: "2 hours"
+
+    AddOn:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Add-on name
+          example: "Pizza Package"
+        description:
+          type: string
+          description: Add-on description
+          example: "2 pizzas + drinks for all guests"
+        estimatedCost:
+          type: integer
+          description: Estimated cost in USD
+          example: 75
+        isRecommended:
+          type: boolean
+          description: Whether this add-on is recommended
+          example: true
+
+    SearchCriteria:
+      type: object
+      properties:
+        location:
+          type: string
+          example: "San Francisco, CA"
+        radius:
+          type: integer
+          example: 10
+        partyTypes:
+          type: array
+          items:
+            type: string
+          example: ["active_play"]
+        totalResults:
+          type: integer
+          example: 12
+
+    PartyTypeSuggestion:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Party type code
+          example: "active_play"
+        displayName:
+          type: string
+          description: Human-readable name
+          example: "Active Play"
+        description:
+          type: string
+          description: Brief description
+          example: "Jump, run, and burn energy with physical fun"
+        icon:
+          type: string
+          description: Icon identifier
+          example: "rocket"
+        ageRange:
+          type: string
+          description: Suitable age range
+          example: "Ages 3-16"
+        averageCost:
+          type: string
+          description: Typical cost range
+          example: "$200-450"
+        popularityScore:
+          type: integer
+          description: Popularity for this age (1-5)
+          minimum: 1
+          maximum: 5
+          example: 5
+
+    BudgetEstimateRequest:
+      type: object
+      required:
+        - partyType
+        - guestCount
+      properties:
+        partyType:
+          type: string
+          example: "active_play"
+        guestCount:
+          type: integer
+          example: 15
+        priceLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+          example: 2
+
+    BudgetEstimateResponse:
+      type: object
+      properties:
+        estimatedTotal:
+          type: integer
+          example: 350
+        estimatedPerPerson:
+          type: integer
+          example: 23
+        breakdown:
+          type: object
+          properties:
+            venueBase:
+              type: integer
+              example: 200
+            perGuestCost:
+              type: integer
+              example: 150
+            typicalAddOns:
+              type: integer
+              example: 75
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "Invalid ZIP code format"
+        status:
+          type: integer
+          example: 400
