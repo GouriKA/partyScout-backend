@@ -8,166 +8,122 @@ import org.springframework.stereotype.Service
 class PartyTypeService {
 
     private val partyTypeTaxonomy: List<PartyTypeTaxonomy> = listOf(
-        // Toddler-friendly (Ages 1-4)
+        // Active Play - Physical activities, sports, movement
         PartyTypeTaxonomy(
-            type = "toddler_play",
-            displayName = "Toddler Play",
-            description = "Safe, soft play areas perfect for little ones",
-            icon = "baby",
-            minAge = 1,
-            maxAge = 4,
-            googlePlacesTypes = listOf("playground", "amusement_center"),
-            searchKeywords = listOf("soft play", "indoor playground", "play cafe", "toddler gym"),
-            typicalDuration = "1.5 hours",
-            averageCostPerPerson = 15..30,
-            setting = "indoor"
-        ),
-        PartyTypeTaxonomy(
-            type = "character_party",
-            displayName = "Character Party",
-            description = "Meet favorite characters for magical moments",
-            icon = "sparkles",
-            minAge = 2,
-            maxAge = 6,
-            googlePlacesTypes = listOf("amusement_center", "event_venue"),
-            searchKeywords = listOf("character party", "princess party", "superhero party"),
+            type = "active_play",
+            displayName = "Active Play",
+            description = "Jump, run, and burn energy with physical fun",
+            icon = "rocket",
+            minAge = 3,
+            maxAge = 16,
+            googlePlacesTypes = listOf("amusement_center", "gym", "bowling_alley", "swimming_pool"),
+            searchKeywords = listOf(
+                "trampoline park", "bounce house", "jump zone", "gymnastics",
+                "skating rink", "roller skating", "ice skating", "ninja warrior",
+                "obstacle course", "rock climbing", "sports center", "swim party",
+                "pool party", "aquatic center"
+            ),
             typicalDuration = "2 hours",
-            averageCostPerPerson = 25..50,
-            setting = "both"
+            averageCostPerPerson = 20..45,
+            setting = "indoor"
         ),
 
-        // Young kids (Ages 4-12)
+        // Creative - Arts, crafts, hands-on making
         PartyTypeTaxonomy(
-            type = "bounce_house",
-            displayName = "Bounce House",
-            description = "Jump, bounce, and burn energy at trampoline parks",
-            icon = "rocket",
+            type = "creative",
+            displayName = "Creative",
+            description = "Arts, crafts, cooking, and hands-on activities",
+            icon = "palette",
             minAge = 4,
-            maxAge = 12,
-            googlePlacesTypes = listOf("amusement_center", "gym"),
-            searchKeywords = listOf("trampoline park", "bounce house", "jump zone", "inflatable park"),
+            maxAge = 14,
+            googlePlacesTypes = listOf("art_studio", "museum"),
+            searchKeywords = listOf(
+                "art studio", "pottery painting", "craft party", "painting party",
+                "cooking class", "baking party", "science center", "STEM party",
+                "slime party", "jewelry making", "canvas painting"
+            ),
             typicalDuration = "2 hours",
-            averageCostPerPerson = 20..40,
+            averageCostPerPerson = 25..50,
             setting = "indoor"
         ),
+
+        // Amusement - Games, movies, competitive fun
         PartyTypeTaxonomy(
-            type = "arcade",
-            displayName = "Arcade Gaming",
-            description = "Classic games, prizes, and pizza fun",
+            type = "amusement",
+            displayName = "Amusement",
+            description = "Arcades, movies, escape rooms, and games galore",
             icon = "gamepad",
             minAge = 5,
-            maxAge = 14,
-            googlePlacesTypes = listOf("amusement_center"),
-            searchKeywords = listOf("arcade", "game center", "chuck e cheese", "dave and busters"),
+            maxAge = 18,
+            googlePlacesTypes = listOf("amusement_center", "movie_theater", "bowling_alley"),
+            searchKeywords = listOf(
+                "arcade", "game center", "chuck e cheese", "dave and busters",
+                "movie theater", "cinema", "private screening",
+                "escape room", "puzzle room", "VR experience", "virtual reality",
+                "bowling", "laser tag", "go kart", "racing", "mini golf", "putt putt"
+            ),
             typicalDuration = "2 hours",
-            averageCostPerPerson = 25..50,
+            averageCostPerPerson = 25..55,
             setting = "indoor"
         ),
-        PartyTypeTaxonomy(
-            type = "sports",
-            displayName = "Sports Active",
-            description = "Active fun with bowling, laser tag, or sports",
-            icon = "trophy",
-            minAge = 6,
-            maxAge = 16,
-            googlePlacesTypes = listOf("bowling_alley", "gym", "sports_complex"),
-            searchKeywords = listOf("bowling", "laser tag", "sports center", "batting cages"),
-            typicalDuration = "2 hours",
-            averageCostPerPerson = 20..45,
-            setting = "indoor"
-        ),
-        PartyTypeTaxonomy(
-            type = "arts_crafts",
-            displayName = "Arts & Crafts",
-            description = "Creative parties with painting, pottery, or crafts",
-            icon = "palette",
-            minAge = 5,
-            maxAge = 14,
-            googlePlacesTypes = listOf("art_studio"),
-            searchKeywords = listOf("pottery painting", "art studio", "craft party", "painting party"),
-            typicalDuration = "2 hours",
-            averageCostPerPerson = 25..45,
-            setting = "indoor"
-        ),
+
+        // Outdoor - Nature, parks, open-air activities
         PartyTypeTaxonomy(
             type = "outdoor",
-            displayName = "Outdoor Adventure",
-            description = "Parks, zoos, and nature-based celebrations",
+            displayName = "Outdoor",
+            description = "Parks, zoos, farms, and nature adventures",
             icon = "tree",
-            minAge = 5,
-            maxAge = 14,
-            googlePlacesTypes = listOf("park", "zoo", "amusement_park"),
-            searchKeywords = listOf("park pavilion", "nature center", "zoo", "botanical garden"),
+            minAge = 3,
+            maxAge = 16,
+            googlePlacesTypes = listOf("park", "zoo", "amusement_park", "campground"),
+            searchKeywords = listOf(
+                "park pavilion", "nature center", "zoo", "botanical garden",
+                "farm party", "petting zoo", "pumpkin patch", "adventure park",
+                "climbing", "zip line", "ropes course", "picnic area",
+                "outdoor party venue", "garden party"
+            ),
             typicalDuration = "3 hours",
-            averageCostPerPerson = 10..35,
+            averageCostPerPerson = 15..40,
             setting = "outdoor"
         ),
 
-        // Tweens and Teens (Ages 10-18)
+        // Characters & Performers - Entertainers, themed experiences
         PartyTypeTaxonomy(
-            type = "escape_room",
-            displayName = "Escape Room",
-            description = "Team puzzles and mystery-solving adventures",
-            icon = "key",
-            minAge = 10,
-            maxAge = 18,
-            googlePlacesTypes = listOf("amusement_center"),
-            searchKeywords = listOf("escape room", "puzzle room", "VR experience", "virtual reality"),
-            typicalDuration = "1.5 hours",
-            averageCostPerPerson = 30..50,
-            setting = "indoor"
-        ),
-        PartyTypeTaxonomy(
-            type = "movies",
-            displayName = "Movie Theater",
-            description = "Private screening with popcorn and friends",
-            icon = "film",
-            minAge = 6,
-            maxAge = 18,
-            googlePlacesTypes = listOf("movie_theater"),
-            searchKeywords = listOf("movie theater", "cinema", "private screening"),
-            typicalDuration = "2.5 hours",
-            averageCostPerPerson = 15..35,
-            setting = "indoor"
-        ),
-        PartyTypeTaxonomy(
-            type = "pool_party",
-            displayName = "Pool Party",
-            description = "Splash and swim at water parks or pools",
-            icon = "waves",
-            minAge = 5,
-            maxAge = 16,
-            googlePlacesTypes = listOf("amusement_park", "swimming_pool"),
-            searchKeywords = listOf("water park", "swim party", "pool party", "aquatic center"),
-            typicalDuration = "3 hours",
+            type = "characters_performers",
+            displayName = "Characters & Performers",
+            description = "Magicians, princesses, superheroes, and entertainers",
+            icon = "sparkles",
+            minAge = 2,
+            maxAge = 10,
+            googlePlacesTypes = listOf("event_venue", "amusement_center"),
+            searchKeywords = listOf(
+                "party entertainer", "magician", "magic show",
+                "princess party", "superhero party", "character party",
+                "clown", "face painter", "balloon artist", "balloon twister",
+                "costumed character", "themed party entertainment"
+            ),
+            typicalDuration = "2 hours",
             averageCostPerPerson = 20..45,
             setting = "both"
         ),
+
+        // Social/Dining - Food-focused, casual gatherings
         PartyTypeTaxonomy(
-            type = "go_karts",
-            displayName = "Go-Karts",
-            description = "Racing fun for speed-loving kids",
-            icon = "car",
-            minAge = 8,
+            type = "social_dining",
+            displayName = "Social & Dining",
+            description = "Restaurants, cafes, and food-focused celebrations",
+            icon = "utensils",
+            minAge = 1,
             maxAge = 18,
-            googlePlacesTypes = listOf("amusement_center"),
-            searchKeywords = listOf("go kart", "racing", "speedway", "karting"),
+            googlePlacesTypes = listOf("restaurant", "cafe", "bakery"),
+            searchKeywords = listOf(
+                "restaurant party room", "private dining", "pizza party",
+                "play cafe", "kids cafe", "party room rental",
+                "ice cream party", "dessert bar", "themed restaurant"
+            ),
             typicalDuration = "2 hours",
-            averageCostPerPerson = 30..60,
-            setting = "both"
-        ),
-        PartyTypeTaxonomy(
-            type = "adventure_park",
-            displayName = "Adventure Park",
-            description = "Climbing, zip lines, and outdoor challenges",
-            icon = "mountain",
-            minAge = 8,
-            maxAge = 18,
-            googlePlacesTypes = listOf("amusement_park", "park"),
-            searchKeywords = listOf("adventure park", "climbing", "zip line", "ropes course"),
-            typicalDuration = "3 hours",
-            averageCostPerPerson = 35..65,
-            setting = "outdoor"
+            averageCostPerPerson = 15..35,
+            setting = "indoor"
         )
     )
 
