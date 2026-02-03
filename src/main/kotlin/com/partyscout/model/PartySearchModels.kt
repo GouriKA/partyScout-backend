@@ -14,7 +14,7 @@ data class PartySearchRequest(
     val zipCode: String,
     val setting: String = "any", // indoor | outdoor | any
     val maxDistanceMiles: Int = 10,
-    val date: LocalDateTime
+    val date: LocalDateTime? = null // Optional party date
 )
 
 /**
@@ -81,7 +81,7 @@ data class PartySearchCriteria(
     val zipCode: String,
     val setting: String,
     val maxDistanceMiles: Int,
-    val date: LocalDateTime
+    val date: LocalDateTime?
 )
 
 /**
