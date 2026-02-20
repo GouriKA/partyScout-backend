@@ -1,13 +1,18 @@
 package com.partyscout.model
 
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotEmpty
 import java.time.LocalDateTime
 
 /**
  * Request model for the party wizard search endpoint
  */
 data class PartySearchRequest(
+    @field:Min(value = 1, message = "Age must be at least 1")
     val age: Int,
+    @field:NotEmpty(message = "At least one party type is required")
     val partyTypes: List<String>,
+    @field:Min(value = 1, message = "Guest count must be at least 1")
     val guestCount: Int,
     val budgetMin: Int? = null,
     val budgetMax: Int? = null,

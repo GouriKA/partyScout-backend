@@ -4,10 +4,14 @@ import com.partyscout.service.GooglePlacesException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.FieldError
+import org.springframework.web.HttpMediaTypeNotSupportedException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.reactive.function.client.WebClientResponseException
 
 @RestControllerAdvice
@@ -52,6 +56,53 @@ class GlobalExceptionHandler {
                 error = "VALIDATION_ERROR",
                 message = "Invalid request parameters",
                 details = errors.joinToString(", ")
+            ))
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadable(ex: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
+        logger.warn("Malformed request body: ${ex.message}")
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ErrorResponse(
+                error = "BAD_REQUEST",
+                message = "Malformed or unreadable request body",
+                details = ex.mostSpecificCause.message
+            ))
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatch(ex: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> {
+        logger.warn("Type mismatch: ${ex.message}")
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ErrorResponse(
+                error = "BAD_REQUEST",
+                message = "Invalid parameter type: '${ex.value}' for parameter '${ex.name}'",
+                details = ex.message
+            ))
+    }
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResourceFound(ex: NoResourceFoundException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(ErrorResponse(
+                error = "NOT_FOUND",
+                message = "The requested resource was not found",
+                details = ex.message
+            ))
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException::class)
+    fun handleHttpMediaTypeNotSupported(ex: HttpMediaTypeNotSupportedException): ResponseEntity<ErrorResponse> {
+        logger.warn("Unsupported media type: ${ex.message}")
+        return ResponseEntity
+            .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+            .body(ErrorResponse(
+                error = "UNSUPPORTED_MEDIA_TYPE",
+                message = "Content type '${ex.contentType}' is not supported",
+                details = ex.message
             ))
     }
 

@@ -4,6 +4,9 @@ import com.partyscout.dto.Location
 import com.partyscout.dto.Place
 import com.partyscout.model.*
 import com.partyscout.service.*
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotEmpty
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -27,7 +30,7 @@ class PartySearchController(
      * Main party search endpoint for the wizard
      */
     @PostMapping("/search")
-    fun searchPartyVenues(@RequestBody request: PartySearchRequest): ResponseEntity<PartySearchResponse> {
+    fun searchPartyVenues(@Valid @RequestBody request: PartySearchRequest): ResponseEntity<PartySearchResponse> {
         logger.info("Party wizard search: age=${request.age}, types=${request.partyTypes}, guests=${request.guestCount}, zip=${request.zipCode}")
 
         // Get Google Places types based on selected party types
@@ -101,7 +104,7 @@ class PartySearchController(
      * Estimate budget for a party configuration
      */
     @PostMapping("/estimate-budget")
-    fun estimateBudget(@RequestBody request: BudgetEstimateRequest): ResponseEntity<BudgetEstimateResponse> {
+    fun estimateBudget(@Valid @RequestBody request: BudgetEstimateRequest): ResponseEntity<BudgetEstimateResponse> {
         val estimatedCost = budgetEstimationService.estimatePartyCost(
             partyTypes = request.partyTypes,
             guestCount = request.guestCount,
@@ -316,7 +319,9 @@ class PartySearchController(
  * Request model for budget estimation
  */
 data class BudgetEstimateRequest(
+    @field:NotEmpty(message = "At least one party type is required")
     val partyTypes: List<String>,
+    @field:Min(value = 1, message = "Guest count must be at least 1")
     val guestCount: Int,
     val priceLevel: Int? = null
 )

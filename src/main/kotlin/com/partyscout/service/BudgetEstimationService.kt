@@ -14,18 +14,12 @@ class BudgetEstimationService(
      * Base cost per person by party type (at price level 2 - moderate)
      */
     private val baseCostPerPerson: Map<String, Int> = mapOf(
-        "toddler_play" to 20,
-        "character_party" to 35,
-        "bounce_house" to 25,
-        "arcade" to 30,
-        "sports" to 28,
-        "arts_crafts" to 32,
+        "active_play" to 25,
+        "creative" to 32,
+        "amusement" to 33,
         "outdoor" to 15,
-        "escape_room" to 38,
-        "movies" to 22,
-        "pool_party" to 28,
-        "go_karts" to 40,
-        "adventure_park" to 45
+        "characters_performers" to 35,
+        "social_dining" to 22
     )
 
     /**
@@ -44,18 +38,12 @@ class BudgetEstimationService(
      * Fixed costs that don't scale with guest count
      */
     private val fixedCosts: Map<String, Int> = mapOf(
-        "toddler_play" to 50,      // Room rental
-        "character_party" to 150,  // Character fee
-        "bounce_house" to 75,      // Party room
-        "arcade" to 100,           // Party package fee
-        "sports" to 80,            // Lane/court rental
-        "arts_crafts" to 60,       // Materials setup
-        "outdoor" to 25,           // Pavilion rental
-        "escape_room" to 100,      // Room booking
-        "movies" to 200,           // Theater rental
-        "pool_party" to 100,       // Pool access
-        "go_karts" to 50,          // Group booking fee
-        "adventure_park" to 75     // Group rate
+        "active_play" to 75,
+        "creative" to 60,
+        "amusement" to 100,
+        "outdoor" to 25,
+        "characters_performers" to 150,
+        "social_dining" to 50
     )
 
     /**
