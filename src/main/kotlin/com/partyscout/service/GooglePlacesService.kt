@@ -2,6 +2,7 @@ package com.partyscout.service
 
 import com.partyscout.config.GooglePlacesConfig
 import com.partyscout.dto.*
+import com.partyscout.logging.LogSanitizer
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -19,8 +20,7 @@ class GooglePlacesService(
      * Convert ZIP code to latitude/longitude using Google Geocoding API
      */
     fun geocodeZipCode(zipCode: String): Mono<Location> {
-        logger.info("Geocoding ZIP code: $zipCode")
-        logger.info("Geocoding ZIP code: $googlePlacesConfig.apiKey")
+        logger.info("Geocoding ZIP code: {}", LogSanitizer.maskZipCode(zipCode))
 
         return googlePlacesWebClient
             .get()
@@ -29,7 +29,7 @@ class GooglePlacesService(
             .retrieve()
             .bodyToMono<GeocodingResponse>()
             .doOnError { error ->
-                logger.error("Geocoding API error for ZIP code $zipCode", error)
+                logger.error("Geocoding API error for ZIP code {}: {}", LogSanitizer.maskZipCode(zipCode), error.message)
             }
             .map { response ->
                 if (response.status == "OK" && response.results.isNotEmpty()) {
@@ -53,7 +53,7 @@ class GooglePlacesService(
         keywords: List<String>,
         radiusMeters: Int = 5000
     ): Mono<SearchNearbyResponse> {
-        logger.info("Searching nearby places at (${location.lat}, ${location.lng}) with types: $keywords")
+        logger.info("Searching nearby places with types: {}, radius: {}m", keywords, radiusMeters)
 
         // Convert keywords to Google Places API types
         val includedTypes = mapKeywordsToTypes(keywords)
@@ -81,7 +81,7 @@ class GooglePlacesService(
             .retrieve()
             .bodyToMono<SearchNearbyResponse>()
             .doOnError { error ->
-                logger.error("Nearby Search API error", error)
+                logger.error("Nearby Search API error: {}", error.message)
             }
             .map { response ->
                 logger.info("Found ${response.places?.size ?: 0} places")
@@ -113,7 +113,7 @@ class GooglePlacesService(
      * Get detailed place information (optional - for enrichment)
      */
     fun getPlaceDetails(placeId: String): Mono<PlaceDetails> {
-        logger.info("Fetching place details for: $placeId")
+        logger.info("Fetching place details for placeId: {}", placeId)
 
         return googlePlacesWebClient
             .get()
@@ -122,7 +122,7 @@ class GooglePlacesService(
             .retrieve()
             .bodyToMono<PlaceDetailsResponse>()
             .doOnError { error ->
-                logger.error("Place Details API error for $placeId", error)
+                logger.error("Place Details API error for placeId {}: {}", placeId, error.message)
             }
             .map { response ->
                 if (response.status == "OK") {

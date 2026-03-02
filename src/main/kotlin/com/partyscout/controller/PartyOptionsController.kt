@@ -1,5 +1,6 @@
 package com.partyscout.controller
 
+import com.partyscout.logging.LogSanitizer
 import com.partyscout.model.*
 import com.partyscout.service.VenueSearchService
 import jakarta.validation.Valid
@@ -17,7 +18,7 @@ class PartyOptionsController(
 
     @PostMapping("/party-options")
     fun getPartyOptions(@Valid @RequestBody request: PartyOptionsRequest): ResponseEntity<PartyOptionsResponse> {
-        logger.info("Received party options request: age=${request.age}, areaCode=${request.areaCode}")
+        logger.info("Party options request: age={}, areaCode={}", request.age, LogSanitizer.maskZipCode(request.areaCode))
 
         // Use reactive service - block for synchronous API
         val venueOptions = venueSearchService.searchPartyOptions(request.age, request.areaCode)
@@ -32,7 +33,7 @@ class PartyOptionsController(
             )
         )
 
-        logger.info("Returning ${venueOptions.size} party options")
+        logger.info("Returning {} party options", venueOptions.size)
         return ResponseEntity.ok(response)
     }
 }

@@ -2,6 +2,7 @@ package com.partyscout.service
 
 import com.partyscout.dto.Location
 import com.partyscout.dto.Place
+import com.partyscout.logging.LogSanitizer
 import com.partyscout.model.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -21,7 +22,7 @@ class VenueSearchService(
      * Search for birthday venues based on age and location
      */
     fun searchVenues(age: Int, zipCode: String): Mono<List<BirthdayVenueOption>> {
-        logger.info("Searching venues for age: $age, ZIP: $zipCode")
+        logger.info("Searching venues for age: {}, ZIP: {}", age, LogSanitizer.maskZipCode(zipCode))
 
         val keywords = getKeywordsForAge(age)
 
@@ -33,14 +34,14 @@ class VenueSearchService(
                             try {
                                 mapToVenueOption(place, location, age)
                             } catch (e: Exception) {
-                                logger.warn("Failed to map place: ${e.message}")
+                                logger.warn("Failed to map place: {}", e.message)
                                 null
                             }
                         } ?: emptyList()
                     }
             }
             .doOnError { error ->
-                logger.error("Venue search failed for age $age, ZIP $zipCode", error)
+                logger.error("Venue search failed for age {}, ZIP {}: {}", age, LogSanitizer.maskZipCode(zipCode), error.message)
             }
             .onErrorReturn(emptyList()) // Return empty list on failure
     }
@@ -49,7 +50,7 @@ class VenueSearchService(
      * Search for party venue options (for PartyOptionsController)
      */
     fun searchPartyOptions(age: Int, zipCode: String): Mono<List<VenueOption>> {
-        logger.info("Searching party options for age: $age, ZIP: $zipCode")
+        logger.info("Searching party options for age: {}, ZIP: {}", age, LogSanitizer.maskZipCode(zipCode))
 
         val keywords = getKeywordsForAge(age)
 
@@ -61,14 +62,14 @@ class VenueSearchService(
                             try {
                                 mapToSimpleVenueOption(place, location)
                             } catch (e: Exception) {
-                                logger.warn("Failed to map place: ${e.message}")
+                                logger.warn("Failed to map place: {}", e.message)
                                 null
                             }
                         } ?: emptyList()
                     }
             }
             .doOnError { error ->
-                logger.error("Party options search failed for age $age, ZIP $zipCode", error)
+                logger.error("Party options search failed for age {}, ZIP {}: {}", age, LogSanitizer.maskZipCode(zipCode), error.message)
             }
             .onErrorReturn(emptyList())
     }

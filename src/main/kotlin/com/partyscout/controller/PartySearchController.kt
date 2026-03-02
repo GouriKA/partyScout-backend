@@ -2,6 +2,7 @@ package com.partyscout.controller
 
 import com.partyscout.dto.Location
 import com.partyscout.dto.Place
+import com.partyscout.logging.LogSanitizer
 import com.partyscout.model.*
 import com.partyscout.service.*
 import jakarta.validation.Valid
@@ -31,7 +32,7 @@ class PartySearchController(
      */
     @PostMapping("/search")
     fun searchPartyVenues(@Valid @RequestBody request: PartySearchRequest): ResponseEntity<PartySearchResponse> {
-        logger.info("Party wizard search: age=${request.age}, types=${request.partyTypes}, guests=${request.guestCount}, zip=${request.zipCode}")
+        logger.info("Party wizard search: age={}, types={}, guests={}, zip={}", request.age, request.partyTypes, request.guestCount, LogSanitizer.maskZipCode(request.zipCode))
 
         // Get Google Places types based on selected party types
         val googlePlacesTypes = if (request.partyTypes.isNotEmpty()) {
@@ -54,7 +55,7 @@ class PartySearchController(
             try {
                 mapToEnhancedVenue(place, location, request)
             } catch (e: Exception) {
-                logger.warn("Failed to map place: ${e.message}")
+                logger.warn("Failed to map place: {}", e.message)
                 null
             }
         }
@@ -79,7 +80,7 @@ class PartySearchController(
             partyTypeSuggestions = partyTypeService.getPartyTypesForAge(request.age)
         )
 
-        logger.info("Returning ${venues.size} venue options")
+        logger.info("Returning {} venue options", venues.size)
         return ResponseEntity.ok(response)
     }
 

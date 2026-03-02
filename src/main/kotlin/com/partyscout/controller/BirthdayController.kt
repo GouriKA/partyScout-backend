@@ -1,5 +1,6 @@
 package com.partyscout.controller
 
+import com.partyscout.logging.LogSanitizer
 import com.partyscout.model.*
 import com.partyscout.service.VenueSearchService
 import jakarta.validation.Valid
@@ -17,7 +18,7 @@ class BirthdayController(
 
     @PostMapping("/search")
     fun searchBirthdayVenues(@Valid @RequestBody request: BirthdayRequest): ResponseEntity<BirthdayResponse> {
-        logger.info("Received birthday venue search request: age=${request.age}, areaCode=${request.areaCode}")
+        logger.info("Birthday venue search: age={}, areaCode={}", request.age, LogSanitizer.maskZipCode(request.areaCode))
 
         // Use reactive service - block for synchronous API
         val venueOptions = venueSearchService.searchVenues(request.age, request.areaCode)
@@ -33,7 +34,7 @@ class BirthdayController(
             )
         )
 
-        logger.info("Returning ${venueOptions.size} venue options")
+        logger.info("Returning {} venue options", venueOptions.size)
         return ResponseEntity.ok(response)
     }
 }

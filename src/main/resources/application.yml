@@ -10,11 +10,15 @@ google:
     api-key: ${GOOGLE_PLACES_API_KEY:}
     base-url: https://maps.googleapis.com/maps/api/place
 
-# Logging configuration
+# Logging configuration — levels are managed in logback-spring.xml per profile.
+# Override here only for runtime tuning without redeploy.
 logging:
   level:
     com.partyscout: INFO
     org.springframework.web: INFO
+    # Suppress framework noise
+    org.apache.catalina: WARN
+    io.netty: WARN
 
 # Jackson configuration for JSON serialization
 spring.jackson:

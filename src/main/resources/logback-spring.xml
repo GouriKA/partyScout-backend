@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+        Logback configuration for PartyScout backend.
+
+        - Local development: human-readable console output with colors.
+        - Production (Cloud Run): structured JSON for Cloud Logging ingestion.
+          Cloud Logging parses JSON automatically, enabling filtering by
+          severity, correlationId, httpMethod, requestUri, etc.
+
+        Security:
+        - Exception stack traces are included in error logs (useful for debugging)
+          but never contain request bodies, headers, or user-supplied data.
+        - The CorrelationIdFilter injects MDC fields that appear in every log line.
+        - No PII is logged at the framework level; application code must use
+          LogSanitizer before logging any user-related data.
+    -->
+
+    <!-- ==================== LOCAL DEVELOPMENT PROFILE ==================== -->
+    <springProfile name="default,local,dev">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%X{correlationId:-no-cid}] %cyan(%-40.40logger{39}) : %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+        </root>
+
+        <logger name="com.partyscout" level="DEBUG" />
+        <logger name="org.springframework.web" level="INFO" />
+
+        <!-- Suppress noisy framework loggers in dev -->
+        <logger name="org.apache.catalina" level="WARN" />
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="io.netty" level="WARN" />
+    </springProfile>
+
+    <!-- ==================== PRODUCTION / CLOUD RUN PROFILE ==================== -->
+    <springProfile name="prod,staging,cloud">
+        <!--
+            JSON structured logging for Cloud Logging.
+            Uses Logback's built-in JsonLayout available since Logback 1.5+
+            (shipped with Spring Boot 3.3+). No additional dependencies needed.
+
+            Output format:
+            {
+              "timestamp": "2026-02-20T08:00:00.123Z",
+              "severity": "INFO",
+              "message": "HTTP GET /api/v2/party-wizard/party-types/7 status=200 duration=12ms",
+              "logger": "com.partyscout.logging.RequestLoggingFilter",
+              "thread": "http-nio-8080-exec-1",
+              "correlationId": "a1b2c3d4-...",
+              "httpMethod": "GET",
+              "requestUri": "/api/v2/party-wizard/party-types/7"
+            }
+
+            Cloud Logging maps "severity" to its native severity levels.
+        -->
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.JsonEncoder">
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE" />
+        </root>
+
+        <logger name="com.partyscout" level="INFO" />
+        <logger name="org.springframework.web" level="WARN" />
+
+        <!-- Suppress noisy loggers in production -->
+        <logger name="org.apache.catalina" level="ERROR" />
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="io.netty" level="WARN" />
+        <logger name="org.springframework.boot.web.embedded" level="WARN" />
+    </springProfile>
+
+</configuration>
