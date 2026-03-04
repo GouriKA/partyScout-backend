@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:postgresql:///${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 10000
+      maximum-pool-size: 5
+      minimum-idle: 2
+    properties:
+      socketFactory: com.google.cloud.sql.postgres.SocketFactory
+      cloudSqlInstance: ${CLOUD_SQL_INSTANCE}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  cloud:
+    gcp:
+      project-id: ${GCP_PROJECT_ID}
+      pubsub:
+        enabled: true
+      sql:
+        enabled: true
+        database-name: ${DB_NAME}
+        instance-connection-name: ${CLOUD_SQL_INSTANCE}

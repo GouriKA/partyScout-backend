@@ -1,6 +1,6 @@
 package com.partyscout.unit.mocks
 
-import com.partyscout.dto.*
+import com.partyscout.venue.dto.*
 
 object MockPlaceFactory {
 

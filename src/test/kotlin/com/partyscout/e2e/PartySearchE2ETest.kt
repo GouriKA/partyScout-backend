@@ -2,7 +2,7 @@ package com.partyscout.e2e
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.partyscout.integration.mocks.TestGooglePlacesConfig
-import com.partyscout.model.PartySearchRequest
+import com.partyscout.party.model.PartySearchRequest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName

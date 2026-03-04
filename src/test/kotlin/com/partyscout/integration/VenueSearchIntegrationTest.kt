@@ -1,8 +1,13 @@
 package com.partyscout.integration
 
-import com.partyscout.dto.*
-import com.partyscout.model.PartySearchRequest
-import com.partyscout.service.*
+import com.partyscout.venue.dto.*
+import com.partyscout.party.model.PartySearchRequest
+import com.partyscout.venue.service.GooglePlacesService
+import com.partyscout.venue.service.VenueSearchService
+import com.partyscout.party.service.PartyTypeService
+import com.partyscout.party.service.BudgetEstimationService
+import com.partyscout.party.service.MatchScoreService
+import com.partyscout.party.service.PartyDetailsService
 import com.partyscout.unit.mocks.MockPlaceFactory.createMockPlace
 import io.mockk.every
 import io.mockk.mockk

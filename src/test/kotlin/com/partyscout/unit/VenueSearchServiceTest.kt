@@ -1,9 +1,9 @@
 package com.partyscout.unit
 
-import com.partyscout.dto.*
-import com.partyscout.service.GooglePlacesException
-import com.partyscout.service.GooglePlacesService
-import com.partyscout.service.VenueSearchService
+import com.partyscout.venue.dto.*
+import com.partyscout.venue.service.GooglePlacesException
+import com.partyscout.venue.service.GooglePlacesService
+import com.partyscout.venue.service.VenueSearchService
 import com.partyscout.unit.mocks.MockPlaceFactory.createMockPlace
 import io.mockk.*
 import org.junit.jupiter.api.Test

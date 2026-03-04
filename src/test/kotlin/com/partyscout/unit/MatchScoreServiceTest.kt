@@ -1,9 +1,9 @@
 package com.partyscout.unit
 
-import com.partyscout.model.PartySearchRequest
-import com.partyscout.service.BudgetEstimationService
-import com.partyscout.service.MatchScoreService
-import com.partyscout.service.PartyTypeService
+import com.partyscout.party.model.PartySearchRequest
+import com.partyscout.party.service.BudgetEstimationService
+import com.partyscout.party.service.MatchScoreService
+import com.partyscout.party.service.PartyTypeService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach

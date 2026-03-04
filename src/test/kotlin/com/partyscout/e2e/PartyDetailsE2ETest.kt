@@ -17,7 +17,7 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import com.partyscout.model.PartyTypeSuggestion
+import com.partyscout.party.model.PartyTypeSuggestion
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestGooglePlacesConfig::class)

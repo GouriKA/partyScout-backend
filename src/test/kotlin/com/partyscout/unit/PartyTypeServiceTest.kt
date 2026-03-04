@@ -1,6 +1,6 @@
 package com.partyscout.unit
 
-import com.partyscout.service.PartyTypeService
+import com.partyscout.party.service.PartyTypeService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach

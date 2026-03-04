@@ -1,7 +1,7 @@
 package com.partyscout.integration.mocks
 
-import com.partyscout.dto.*
-import com.partyscout.service.GooglePlacesService
+import com.partyscout.venue.dto.*
+import com.partyscout.venue.service.GooglePlacesService
 import io.mockk.every
 import io.mockk.mockk
 import org.springframework.boot.test.context.TestConfiguration
