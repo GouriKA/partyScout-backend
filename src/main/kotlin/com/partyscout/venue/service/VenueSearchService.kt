@@ -43,7 +43,6 @@ class VenueSearchService(
             .doOnError { error ->
                 logger.error("Venue search failed for age {}, ZIP {}: {}", age, LogSanitizer.maskZipCode(zipCode), error.message)
             }
-            .onErrorReturn(emptyList()) // Return empty list on failure
     }
 
     /**
@@ -71,7 +70,6 @@ class VenueSearchService(
             .doOnError { error ->
                 logger.error("Party options search failed for age {}, ZIP {}: {}", age, LogSanitizer.maskZipCode(zipCode), error.message)
             }
-            .onErrorReturn(emptyList())
     }
 
     /**
