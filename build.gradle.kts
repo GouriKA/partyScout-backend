@@ -52,7 +52,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")
-    runtimeOnly("com.google.cloud.sql:postgres-socket-factory:1.15.0")
+    runtimeOnly("com.google.cloud.sql:postgres-socket-factory")
 
     // ShedLock
     implementation("net.javacrumbs.shedlock:shedlock-spring:5.10.0")
