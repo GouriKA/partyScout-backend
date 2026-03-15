@@ -20,7 +20,8 @@ class CorsConfig {
             "http://localhost:3000",
             "https://*.run.app",
             "https://storage.googleapis.com",
-            "https://*.storage.googleapis.com"
+            "https://*.storage.googleapis.com",
+            "https://partyscout.live"
         )
 
         // Allow all HTTP methods
