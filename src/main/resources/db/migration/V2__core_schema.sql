@@ -57,7 +57,7 @@ CREATE TABLE outbox_events (
     aggregate_type VARCHAR(255),
     aggregate_id VARCHAR(255),
     correlation_id VARCHAR(255),
-    payload CLOB,
+    payload TEXT,
     published BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMP
