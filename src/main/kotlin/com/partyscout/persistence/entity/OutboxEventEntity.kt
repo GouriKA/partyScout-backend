@@ -25,7 +25,7 @@ class OutboxEventEntity(
     @Column(name = "correlation_id")
     var correlationId: String? = null,
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     var payload: String? = null,
 
     var published: Boolean = false,
