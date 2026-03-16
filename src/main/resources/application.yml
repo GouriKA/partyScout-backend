@@ -34,6 +34,10 @@ google:
     api-key: ${GOOGLE_PLACES_API_KEY:}
     base-url: https://maps.googleapis.com/maps/api/place
 
+firebase:
+  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+  project-id: ${FIREBASE_PROJECT_ID:}
+
 # Logging configuration — levels are managed in logback-spring.xml per profile.
 # Override here only for runtime tuning without redeploy.
 logging:

@@ -29,6 +29,10 @@ steps:
       - '--allow-unauthenticated'
       - '--memory'
       - '512Mi'
+      - '--set-secrets'
+      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest'
+      - '--set-env-vars'
+      - 'FIREBASE_PROJECT_ID=$PROJECT_ID'
 
 images:
   - 'gcr.io/$PROJECT_ID/partyscout-backend:$COMMIT_SHA'

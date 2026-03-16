@@ -62,8 +62,18 @@ dependencies {
     implementation(platform("com.google.cloud:spring-cloud-gcp-dependencies:5.0.0"))
     implementation("com.google.cloud:spring-cloud-gcp-starter-pubsub")
 
+    // Spring Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
+    // Firebase Admin SDK
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+
+    // Rate limiting
+    implementation("com.bucket4j:bucket4j-core:8.10.1")
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
