@@ -32,5 +32,5 @@ spring:
         instance-connection-name: ${CLOUD_SQL_INSTANCE}
 
 firebase:
-  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON}
-  project-id: ${FIREBASE_PROJECT_ID}
+  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+  project-id: ${FIREBASE_PROJECT_ID:}
