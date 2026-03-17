@@ -26,6 +26,7 @@ import kotlin.math.sqrt
 @RequestMapping("/api/v2/party-wizard")
 class PartySearchController(
     private val googlePlacesService: GooglePlacesService,
+    private val googlePlacesConfig: com.partyscout.venue.config.GooglePlacesConfig,
     private val partyTypeService: PartyTypeService,
     private val matchScoreService: MatchScoreService,
     private val budgetEstimationService: BudgetEstimationService,
@@ -248,7 +249,7 @@ class PartySearchController(
         // Extract photo URLs (if available)
         val photos = place.photos?.take(5)?.map { photo ->
             // Photos would need additional API call, for now return placeholder
-            "https://places.googleapis.com/v1/${photo.name}/media?key=API_KEY&maxWidthPx=400"
+            "https://places.googleapis.com/v1/${photo.name}/media?key=${googlePlacesConfig.apiKey}&maxWidthPx=400"
         } ?: emptyList()
 
         return EnhancedVenue(
