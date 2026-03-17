@@ -28,7 +28,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--memory'
-      - '512Mi'
+      - '1Gi'
       - '--update-secrets'
       - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest'
       - '--update-env-vars'
