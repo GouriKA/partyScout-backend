@@ -21,7 +21,8 @@ class CorsConfig {
             "https://*.run.app",
             "https://storage.googleapis.com",
             "https://*.storage.googleapis.com",
-            "https://partyscout.live"
+            "https://partyscout.live",
+            "https://www.partyscout.live"
         )
 
         // Allow all HTTP methods
