@@ -30,7 +30,7 @@ steps:
       - '--memory'
       - '1Gi'
       - '--update-secrets'
-      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest'
+      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest,GOOGLE_PLACES_API_KEY=google-places-api-key:latest'
       - '--update-env-vars'
       - 'FIREBASE_PROJECT_ID=$PROJECT_ID'
 
