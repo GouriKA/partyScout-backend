@@ -1,21 +1,32 @@
 package com.partyscout.feedback
 
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.stereotype.Service
 
 @Service
-class FeedbackService(private val mailSender: JavaMailSender) {
+class FeedbackService(
+    private val mailSender: JavaMailSender,
+    @Value("\${spring.mail.username:}") private val smtpUsername: String
+) {
     private val logger = LoggerFactory.getLogger(FeedbackService::class.java)
     private val recipientEmail = "gouri.kulkarni@partyscout.live"
 
     fun sendFeedbackEmail(request: FeedbackRequest) {
+        val body = buildEmailBody(request)
+
+        if (smtpUsername.isBlank()) {
+            logger.info("SMTP not configured — logging feedback instead:\n{}", body)
+            return
+        }
+
         try {
             val message = SimpleMailMessage()
             message.setTo(recipientEmail)
             message.subject = "[PartyScout Feedback] ${request.type}"
-            message.text = buildEmailBody(request)
+            message.text = body
             message.from = "noreply@partyscout.live"
             mailSender.send(message)
             logger.info("Feedback email sent for type={}", request.type)
