@@ -32,6 +32,9 @@ class SecurityConfig(
                 auth
                     // Auth endpoints
                     .requestMatchers("/api/v2/auth/**").authenticated()
+                    // Saved events and profiles require authentication
+                    .requestMatchers("/api/v2/saved-events/**").authenticated()
+                    .requestMatchers("/api/v2/profiles/**").authenticated()
                     // All other endpoints are public (wizard works anonymously)
                     .anyRequest().permitAll()
             }
