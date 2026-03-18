@@ -120,7 +120,18 @@ class PartyTypeServiceTest {
             val types = partyTypeService.getGooglePlacesTypesForPartyType("active_play")
 
             assertFalse(types.isEmpty())
-            assertTrue(types.any { it == "amusement_center" || it == "gym" })
+            assertTrue(types.contains("amusement_center"), "amusement_center should be included for active_play")
+        }
+
+        @Test
+        @DisplayName("should not include gym in active_play googlePlacesTypes")
+        fun shouldNotIncludeGymInActivePlay() {
+            val types = partyTypeService.getGooglePlacesTypesForPartyType("active_play")
+
+            assertFalse(types.contains("gym"), "gym should NOT be included in active_play googlePlacesTypes")
+            assertTrue(types.contains("amusement_center"), "amusement_center should be included")
+            assertTrue(types.contains("bowling_alley"), "bowling_alley should be included")
+            assertTrue(types.contains("swimming_pool"), "swimming_pool should be included")
         }
 
         @Test

@@ -443,5 +443,32 @@ class GooglePlacesServiceTest {
             // Then
             assertTrue(capturedRequest.captured.includedTypes.contains("custom_venue_type"))
         }
+
+        @Test
+        @DisplayName("should map sports_complex to sports_complex only — not gym or stadium")
+        fun shouldMapSportsComplexWithoutGymOrStadium() {
+            // Given
+            val location = Location(lat = 37.7893, lng = -122.3932)
+            val keywords = listOf("sports_complex")
+            val searchResponse = SearchNearbyResponse(places = emptyList())
+
+            val capturedRequest = slot<SearchNearbyRequest>()
+
+            every { webClient.post() } returns requestBodyUriSpec
+            every { requestBodyUriSpec.uri(any<String>()) } returns requestBodySpec
+            every { requestBodySpec.header(any(), any()) } returns requestBodySpec
+            every { requestBodySpec.bodyValue(capture(capturedRequest)) } returns requestHeadersSpec
+            every { requestHeadersSpec.retrieve() } returns responseSpec
+            every { responseSpec.bodyToMono<SearchNearbyResponse>() } returns Mono.just(searchResponse)
+
+            // When
+            googlePlacesService.searchNearbyPlaces(location, keywords).block()
+
+            // Then
+            val includedTypes = capturedRequest.captured.includedTypes
+            assertTrue(includedTypes.contains("sports_complex"), "sports_complex should be included")
+            assertFalse(includedTypes.contains("gym"), "gym should NOT be included for sports_complex")
+            assertFalse(includedTypes.contains("stadium"), "stadium should NOT be included for sports_complex")
+        }
     }
 }
