@@ -6,29 +6,36 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              GOOGLE CLOUD PLATFORM                          │
 │                                                                             │
-│  ┌─────────────────────┐         ┌─────────────────────┐                   │
-│  │    Cloud Run        │         │    Cloud Run        │                   │
-│  │  ┌───────────────┐  │         │  ┌───────────────┐  │                   │
-│  │  │   Frontend    │  │  HTTP   │  │   Backend     │  │                   │
-│  │  │   (React +    │──┼────────▶│  │   (Kotlin +   │  │                   │
-│  │  │    nginx)     │  │         │  │  Spring Boot) │  │                   │
-│  │  └───────────────┘  │         │  └───────┬───────┘  │                   │
-│  │   Port 8080         │         │          │          │                   │
-│  └─────────────────────┘         └──────────┼──────────┘                   │
-│                                             │                               │
-│                                             ▼                               │
+│  ┌──────────────────────────┐    ┌──────────────────────────┐              │
+│  │  Cloud Run (us-east1)    │    │  Cloud Run (us-central1) │              │
+│  │  ┌────────────────────┐  │    │  ┌────────────────────┐  │              │
+│  │  │  Frontend (canary) │  │    │  │  Frontend (prod)   │  │              │
+│  │  │  partyscout-       │  │    │  │  partyscout.live   │  │              │
+│  │  │  frontend-canary   │  │    │  └────────────────────┘  │              │
+│  │  └────────────────────┘  │    │  ┌────────────────────┐  │              │
+│  │  ┌────────────────────┐  │    │  │  Backend (prod)    │  │              │
+│  │  │  Backend (canary)  │  │    │  │  partyscout.live   │  │              │
+│  │  │  partyscout-       │  │    │  │  /api              │  │              │
+│  │  │  backend-canary    │  │    │  └────────┬───────────┘  │              │
+│  │  └────────────────────┘  │    │           │              │              │
+│  └──────────────────────────┘    └───────────┼──────────────┘              │
+│                                              │                              │
+│                                              ▼                              │
 │                                  ┌─────────────────────┐                   │
 │                                  │   Secret Manager    │                   │
 │                                  │  ┌───────────────┐  │                   │
 │                                  │  │ google-places │  │                   │
 │                                  │  │   -api-key    │  │                   │
+│                                  │  ├───────────────┤  │                   │
+│                                  │  │ firebase-     │  │                   │
+│                                  │  │ service-acct  │  │                   │
 │                                  │  └───────────────┘  │                   │
 │                                  └─────────────────────┘                   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                             │
-                                             │ HTTPS
-                                             ▼
+                                              │
+                                              │ HTTPS
+                                              ▼
                                   ┌─────────────────────┐
                                   │   Google Places     │
                                   │     API (New)       │
@@ -44,6 +51,8 @@
 - Vite 7.x (build tool)
 - CSS custom properties (design system)
 - nginx (production server)
+- Firebase Auth (Google + email/password sign-in)
+- Poppins font via Google Fonts
 
 **Directory Structure**:
 ```
@@ -58,8 +67,8 @@ partyScout-frontend/
 │   │   │   ├── WizardContainer.jsx
 │   │   │   ├── StepIndicator.jsx
 │   │   │   ├── Step1_ChildInfo.jsx
-│   │   │   ├── Step2_Preferences.jsx
-│   │   │   ├── Step3_Location.jsx
+│   │   │   ├── Step2_Location.jsx
+│   │   │   ├── Step3_Preferences.jsx
 │   │   │   ├── Step4_VenueResults.jsx
 │   │   │   └── Step5_PartyDetails.jsx
 │   │   ├── venue/              # Venue display components
@@ -68,23 +77,37 @@ partyScout-frontend/
 │   │   └── common/             # Reusable UI components
 │   │       ├── Button.jsx
 │   │       ├── Input.jsx
+│   │       ├── Logo.jsx
+│   │       ├── AuthModal.jsx
 │   │       └── Slider.jsx
 │   └── main.jsx                # Entry point
+├── public/
+│   └── logo.jpg
 ├── Dockerfile
 ├── nginx.conf
-└── cloudbuild.yaml
+├── cloudbuild.yaml             # Canary deployment
+└── cloudbuild-prod.yaml        # Prod promotion
 ```
 
 **State Management**:
 ```javascript
 {
   currentStep: 1,
-  childInfo: { name, age, partyDate },
-  preferences: { partyTypes, guestCount, budget },
-  location: { zipCode, setting, maxDistance },
+  childInfo: { age, partyDate },
+  preferences: { partyTypes[], guestCount, budget: { min, max } },
+  location: { zipCode, setting, maxDistance, accessibility[] },
   venues: [],
   selectedVenue: null,
-  compareVenues: []
+  compareVenues: [],
+  partyTypeSuggestions: [],
+  allPartyTypes: [],
+  budgetEstimate: null,
+  budgetEstimateLoading: false,
+  partyDetails: null,
+  weather: null,
+  weatherLoading: false,
+  loading: false,
+  error: null
 }
 ```
 
@@ -101,20 +124,40 @@ partyScout-frontend/
 partyScout-backend/
 ├── src/main/kotlin/com/partyscout/
 │   ├── PartyScoutApplication.kt    # Application entry
-│   ├── config/
-│   │   ├── CorsConfig.kt           # CORS settings
-│   │   ├── WebClientConfig.kt      # HTTP client config
-│   │   └── GooglePlacesConfig.kt   # API configuration
-│   ├── controller/
-│   │   └── PartySearchController.kt # REST endpoints
-│   ├── model/
-│   │   └── PartySearchModels.kt    # Data classes
-│   └── service/
-│       ├── PartyTypeService.kt     # Party type taxonomy
-│       ├── MatchScoreService.kt    # Venue scoring
-│       ├── BudgetEstimationService.kt
-│       ├── PartyDetailsService.kt  # Included items
-│       └── VenueSearchService.kt   # Google Places integration
+│   ├── auth/
+│   │   ├── config/
+│   │   │   ├── FirebaseConfig.kt
+│   │   │   └── SecurityConfig.kt
+│   │   ├── controller/
+│   │   │   └── AuthController.kt
+│   │   ├── entity/
+│   │   │   └── UserEntity.kt
+│   │   ├── filter/
+│   │   │   └── FirebaseAuthFilter.kt
+│   │   ├── repository/
+│   │   │   └── UserRepository.kt
+│   │   └── service/
+│   │       └── UserService.kt
+│   ├── party/
+│   │   ├── model/
+│   │   │   └── PartySearchModels.kt
+│   │   └── service/
+│   │       ├── BudgetEstimationService.kt
+│   │       ├── MatchScoreService.kt
+│   │       ├── PartyDetailsService.kt
+│   │       └── PartyTypeService.kt
+│   ├── persistence/
+│   │   ├── entity/             # OutboxEvent, PartyType, Search, Venue
+│   │   ├── repository/         # OutboxEvent, Search, Venue repositories
+│   │   └── service/
+│   │       └── SearchPersistenceService.kt
+│   ├── search/
+│   │   └── controller/
+│   │       └── PartySearchController.kt
+│   └── shared/
+│       ├── config/             # CorsConfig, ShedLockConfig
+│       └── event/              # DomainEvent, DomainEventPublisher, Events,
+│                               # OutboxEventListener, OutboxPoller, PubSubEventPublisher
 ├── src/main/resources/
 │   └── application.yml             # Configuration
 ├── build.gradle.kts
@@ -180,40 +223,79 @@ partyScout-backend/
 
 ### CI/CD Pipeline
 
+Push to `main` deploys to **canary only** (`us-east1`). Promotion to prod (`us-central1`) requires a manual trigger.
+
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  GitHub  │───▶│  Cloud   │───▶│  Container │───▶│  Cloud   │
-│   Push   │    │  Build   │    │  Registry  │    │   Run    │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
+┌──────────┐    ┌────────────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│  GitHub  │───▶│  Cloud Build (auto)    │───▶│  Container   │───▶│  Cloud Run      │
+│  push    │    │  partyscout-frontend-  │    │  Registry    │    │  canary         │
+│  main    │    │  canary /              │    │              │    │  (us-east1)     │
+│          │    │  partyscout-backend-   │    │              │    │                 │
+│          │    │  canary                │    │              │    │                 │
+└──────────┘    └────────────────────────┘    └──────────────┘    └─────────────────┘
+
+           Manual trigger required for prod promotion:
+┌──────────────────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│  Cloud Build (manual)        │───▶│  Container   │───▶│  Cloud Run      │
+│  partyscout-frontend-        │    │  Registry    │    │  prod           │
+│  promote-prod /              │    │              │    │  (us-central1)  │
+│  partyscout-backend-         │    │              │    │                 │
+│  promote-prod                │    │              │    │                 │
+└──────────────────────────────┘    └──────────────┘    └─────────────────┘
 ```
 
-**Backend Deployment**:
+**Cloud Run Services**:
+| Service | Region | URL |
+|---------|--------|-----|
+| `partyscout-frontend-canary` | us-east1 | `https://partyscout-frontend-canary-3f6x32ha2a-ue.a.run.app` |
+| `partyscout-backend-canary` | us-east1 | `https://partyscout-backend-canary-3f6x32ha2a-ue.a.run.app` |
+| `partyscout-frontend` | us-central1 | `https://partyscout.live` |
+| `partyscout-backend` | us-central1 | `https://partyscout.live/api` |
+
+**Cloud Build Triggers**:
+| Trigger | Type | Purpose |
+|---------|------|---------|
+| `partyscout-frontend-canary` | Auto (push to main) | Deploy frontend to canary |
+| `partyscout-backend-canary` | Auto (push to main) | Deploy backend to canary |
+| `partyscout-frontend-promote-prod` | Manual | Promote frontend to prod |
+| `partyscout-backend-promote-prod` | Manual | Promote backend to prod |
+
+Config files: `cloudbuild.yaml` (canary), `cloudbuild-prod.yaml` (prod promotion).
+
+**Backend Deployment (canary)**:
 1. Push to `main` branch
-2. Cloud Build triggered
+2. Cloud Build triggered automatically
 3. Docker image built with Gradle
 4. Image pushed to GCR
-5. Cloud Run deploys new revision
+5. Cloud Run deploys new revision to canary (`us-east1`)
 
-**Frontend Deployment**:
+**Frontend Deployment (canary)**:
 1. Push to `main` branch
-2. Cloud Build triggered
+2. Cloud Build triggered automatically
 3. Docker image built with Node + nginx
-4. `VITE_API_URL` injected at build time
+4. `VITE_API_URL` and Firebase env vars injected at build time
 5. Image pushed to GCR
-6. Cloud Run deploys new revision
+6. Cloud Run deploys new revision to canary (`us-east1`)
 
 ### Environment Configuration
 
-**Backend (Runtime)**:
+**Backend (Runtime — from Secret Manager)**:
 | Variable | Source | Description |
 |----------|--------|-------------|
-| `GOOGLE_PLACES_API_KEY` | Secret Manager | API key |
+| `GOOGLE_PLACES_API_KEY` | Secret Manager | Google Places API key |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Secret Manager | Firebase Admin SDK credentials |
 | `PORT` | Cloud Run | Server port (8080) |
 
 **Frontend (Build-time)**:
 | Variable | Source | Description |
 |----------|--------|-------------|
 | `VITE_API_URL` | Build arg | Backend URL |
+| `VITE_FIREBASE_API_KEY` | Build arg | Firebase project API key |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Build arg | Firebase auth domain |
+| `VITE_FIREBASE_PROJECT_ID` | Build arg | Firebase project ID |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Build arg | Firebase storage bucket |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Build arg | Firebase messaging sender ID |
+| `VITE_FIREBASE_APP_ID` | Build arg | Firebase app ID |
 
 ## Security
 
@@ -265,11 +347,14 @@ allowedOriginPatterns = listOf(
 
 ### Logs
 ```bash
-# View backend logs
-gcloud run logs read partyscout-backend --region us-central1
+# View backend logs (prod)
+gcloud run services logs read partyscout-backend --region us-central1
+
+# View backend logs (canary)
+gcloud run services logs read partyscout-backend-canary --region us-east1
 
 # Real-time tail
-gcloud run logs tail partyscout-backend --region us-central1
+gcloud run services logs tail partyscout-backend --region us-central1
 ```
 
 ### Metrics (Cloud Run Dashboard)
