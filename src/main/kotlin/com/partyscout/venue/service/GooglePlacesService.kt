@@ -100,7 +100,7 @@ class GooglePlacesService(
                 "bowling_alley" -> listOf("bowling_alley")
                 "arcade" -> listOf("amusement_center")
                 "movie_theater" -> listOf("movie_theater")
-                "sports_complex" -> listOf("gym", "stadium", "sports_complex")
+                "sports_complex" -> listOf("sports_complex")
                 "restaurant" -> listOf("restaurant")
                 "bar" -> listOf("bar", "night_club")
                 "banquet_hall" -> listOf("banquet_hall", "event_venue")

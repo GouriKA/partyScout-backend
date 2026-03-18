@@ -16,7 +16,7 @@ class PartyTypeService {
             icon = "rocket",
             minAge = 3,
             maxAge = 16,
-            googlePlacesTypes = listOf("amusement_center", "gym", "bowling_alley", "swimming_pool"),
+            googlePlacesTypes = listOf("amusement_center", "bowling_alley", "swimming_pool"),
             searchKeywords = listOf(
                 "trampoline park", "bounce house", "jump zone", "gymnastics",
                 "skating rink", "roller skating", "ice skating", "ninja warrior",
