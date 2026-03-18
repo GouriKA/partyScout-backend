@@ -29,6 +29,9 @@ class SavedEventEntity(
     @Column(name = "party_types")
     var partyTypes: String? = null,
 
+    @Column(name = "guest_count")
+    var guestCount: Int? = null,
+
     @Column(name = "created_at")
     var createdAt: Instant = Instant.now()
 )

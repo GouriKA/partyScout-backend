@@ -54,7 +54,8 @@ class SaveEventsService(
             googlePlaceId = request.googlePlaceId,
             venueName = request.venueName,
             eventDate = request.eventDate?.let { LocalDate.parse(it) },
-            partyTypes = request.partyTypes
+            partyTypes = request.partyTypes,
+            guestCount = request.guestCount
         )
         return savedEventRepository.save(event).toResponse()
     }
@@ -91,7 +92,8 @@ class SaveEventsService(
                         googlePlaceId = item.googlePlaceId,
                         venueName = item.venueName,
                         eventDate = item.eventDate?.let { LocalDate.parse(it) },
-                        partyTypes = item.partyTypes
+                        partyTypes = item.partyTypes,
+                        guestCount = item.guestCount
                     )
                 )
             }
@@ -108,6 +110,7 @@ class SaveEventsService(
         venueName = venueName,
         eventDate = eventDate?.toString(),
         partyTypes = partyTypes,
+        guestCount = guestCount,
         createdAt = createdAt.toString()
     )
 }
