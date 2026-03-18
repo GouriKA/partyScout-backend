@@ -3,6 +3,9 @@ package com.partyscout.integration
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.partyscout.integration.mocks.TestGooglePlacesConfig
 import com.partyscout.party.model.PartySearchRequest
+import com.partyscout.venue.dto.*
+import com.partyscout.venue.service.GooglePlacesService
+import io.mockk.every
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -14,6 +17,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import reactor.core.publisher.Mono
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -26,6 +30,9 @@ class PartySearchControllerTest {
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var googlePlacesService: GooglePlacesService
 
     @Nested
     @DisplayName("GET /api/v2/party-wizard/party-types/{age}")
@@ -231,6 +238,147 @@ class PartySearchControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(largePartyRequest))
             ).andExpect(status().isOk)
+        }
+    }
+
+    @Nested
+    @DisplayName("Venue Exclusion Filter")
+    inner class VenueExclusionFilter {
+
+        private val baseRequest = mapOf(
+            "age" to 7,
+            "partyTypes" to listOf("active_play"),
+            "guestCount" to 15,
+            "zipCode" to "94105",
+            "setting" to "any",
+            "maxDistanceMiles" to 25
+        )
+
+        private val mockLocation = Location(lat = 37.7893, lng = -122.3932)
+
+        @Test
+        @DisplayName("should exclude venue with grocery_store type from search results")
+        fun shouldExcludeGroceryStoreFromResults() {
+            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
+                SearchNearbyResponse(
+                    places = listOf(
+                        Place(
+                            id = "excluded-grocery",
+                            displayName = DisplayName(text = "Test Grocery Store"),
+                            formattedAddress = "1 Main St, San Francisco, CA 94105",
+                            location = LatLng(latitude = 37.7900, longitude = -122.3900),
+                            rating = 4.0,
+                            userRatingCount = 100,
+                            priceLevel = "PRICE_LEVEL_MODERATE",
+                            types = listOf("grocery_store")
+                        )
+                    )
+                )
+            )
+
+            mockMvc.perform(
+                post("/api/v2/party-wizard/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(baseRequest))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.venues").isArray)
+                .andExpect(jsonPath("$.venues.length()").value(0))
+        }
+
+        @Test
+        @DisplayName("should exclude venue with supermarket type from search results")
+        fun shouldExcludeSupermarketFromResults() {
+            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
+                SearchNearbyResponse(
+                    places = listOf(
+                        Place(
+                            id = "excluded-supermarket",
+                            displayName = DisplayName(text = "Test Supermarket"),
+                            formattedAddress = "2 Market St, San Francisco, CA 94105",
+                            location = LatLng(latitude = 37.7900, longitude = -122.3900),
+                            rating = 3.8,
+                            userRatingCount = 200,
+                            priceLevel = "PRICE_LEVEL_INEXPENSIVE",
+                            types = listOf("supermarket")
+                        )
+                    )
+                )
+            )
+
+            mockMvc.perform(
+                post("/api/v2/party-wizard/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(baseRequest))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.venues").isArray)
+                .andExpect(jsonPath("$.venues.length()").value(0))
+        }
+
+        @Test
+        @DisplayName("should exclude venue that has both restaurant and grocery_store types")
+        fun shouldExcludeMixedTypeVenueContainingExcludedType() {
+            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
+                SearchNearbyResponse(
+                    places = listOf(
+                        Place(
+                            id = "excluded-mixed",
+                            displayName = DisplayName(text = "Test Restaurant Grocery"),
+                            formattedAddress = "3 Blend Ave, San Francisco, CA 94105",
+                            location = LatLng(latitude = 37.7900, longitude = -122.3900),
+                            rating = 4.2,
+                            userRatingCount = 150,
+                            priceLevel = "PRICE_LEVEL_MODERATE",
+                            types = listOf("restaurant", "grocery_store")
+                        )
+                    )
+                )
+            )
+
+            mockMvc.perform(
+                post("/api/v2/party-wizard/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(baseRequest))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.venues").isArray)
+                .andExpect(jsonPath("$.venues.length()").value(0))
+        }
+
+        @Test
+        @DisplayName("should include venue with amusement_center type in search results")
+        fun shouldIncludeAmusementCenterInResults() {
+            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
+                SearchNearbyResponse(
+                    places = listOf(
+                        Place(
+                            id = "allowed-amusement",
+                            displayName = DisplayName(text = "Test Amusement Center"),
+                            formattedAddress = "4 Fun Blvd, San Francisco, CA 94105",
+                            location = LatLng(latitude = 37.7900, longitude = -122.3900),
+                            rating = 4.5,
+                            userRatingCount = 300,
+                            priceLevel = "PRICE_LEVEL_MODERATE",
+                            types = listOf("amusement_center")
+                        )
+                    )
+                )
+            )
+
+            mockMvc.perform(
+                post("/api/v2/party-wizard/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(baseRequest))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.venues").isArray)
+                .andExpect(jsonPath("$.venues.length()").value(1))
+                .andExpect(jsonPath("$.venues[0].name").value("Test Amusement Center"))
         }
     }
 
