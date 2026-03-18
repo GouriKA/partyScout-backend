@@ -21,13 +21,3 @@ CREATE TABLE saved_events (
 );
 CREATE INDEX idx_saved_events_user_id ON saved_events(user_id);
 CREATE INDEX idx_saved_events_profile_id ON saved_events(profile_id);
-
--- Partial unique index for general saves (profile_id IS NULL)
-CREATE UNIQUE INDEX idx_saved_events_no_profile
-    ON saved_events(user_id, google_place_id)
-    WHERE profile_id IS NULL;
-
--- Partial unique index for profile-specific saves (profile_id IS NOT NULL)
-CREATE UNIQUE INDEX idx_saved_events_with_profile
-    ON saved_events(user_id, profile_id, google_place_id)
-    WHERE profile_id IS NOT NULL;
