@@ -60,14 +60,16 @@ class PartySearchController(
         val searchResponse = googlePlacesService.searchNearbyPlaces(location, googlePlacesTypes, radiusMeters).block()
             ?: return ResponseEntity.internalServerError().build()
 
-        val venues = searchResponse.places?.mapNotNull { place ->
-            try {
-                mapToEnhancedVenue(place, location, request)
-            } catch (e: Exception) {
-                logger.warn("Failed to map place: {}", e.message)
-                null
+        val venues = searchResponse.places
+            ?.filter { isNotExcludedVenueType(it.types ?: emptyList()) }
+            ?.mapNotNull { place ->
+                try {
+                    mapToEnhancedVenue(place, location, request)
+                } catch (e: Exception) {
+                    logger.warn("Failed to map place: {}", e.message)
+                    null
+                }
             }
-        }
             ?.filter { filterBySetting(it, request.setting) }
             ?.filter { it.distanceInMiles <= request.maxDistanceMiles }
             ?.sortedByDescending { it.matchScore }
@@ -285,6 +287,20 @@ class PartySearchController(
             isOpenOnDate = null, // Would need additional API call
             openingHours = null
         )
+    }
+
+    /**
+     * Exclude venue types that are not suitable for birthday parties
+     */
+    private val excludedPlaceTypes = setOf(
+        "grocery_store", "supermarket", "convenience_store", "gas_station",
+        "pharmacy", "drugstore", "hardware_store", "home_goods_store",
+        "furniture_store", "clothing_store", "department_store", "shopping_mall",
+        "car_dealer", "car_repair", "car_wash", "laundry", "storage"
+    )
+
+    private fun isNotExcludedVenueType(types: List<String>): Boolean {
+        return types.none { it in excludedPlaceTypes }
     }
 
     /**
