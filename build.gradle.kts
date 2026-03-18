@@ -71,6 +71,9 @@ dependencies {
     // Rate limiting
     implementation("com.bucket4j:bucket4j-core:8.10.1")
 
+    // Mail
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
