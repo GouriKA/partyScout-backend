@@ -1,0 +1,24 @@
+steps:
+  # Deploy to prod (us-central1) — manually triggered only
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'partyscout-backend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/partyscout-backend:${_IMAGE_TAG}'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '1Gi'
+      - '--update-secrets'
+      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest'
+      - '--update-env-vars'
+      - 'FIREBASE_PROJECT_ID=$PROJECT_ID'
+
+substitutions:
+  _IMAGE_TAG: 'latest'
