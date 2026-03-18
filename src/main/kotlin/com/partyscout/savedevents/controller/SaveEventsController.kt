@@ -83,6 +83,7 @@ data class SaveEventRequest(
     val eventDate: String? = null,
     val partyTypes: String? = null,
     val guestCount: Int? = null,
+    val venueWebsite: String? = null,
 )
 
 data class SavedEventResponse(
@@ -93,6 +94,7 @@ data class SavedEventResponse(
     val eventDate: String?,
     val partyTypes: String?,
     val guestCount: Int?,
+    val venueWebsite: String?,
     val createdAt: String,
 )
 
@@ -109,4 +111,5 @@ data class MergeItem(
     val eventDate: String? = null,
     val partyTypes: String? = null,
     val guestCount: Int? = null,
+    val venueWebsite: String? = null,
 )
