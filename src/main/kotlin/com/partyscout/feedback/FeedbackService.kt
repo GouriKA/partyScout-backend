@@ -27,7 +27,7 @@ class FeedbackService(
             message.setTo(recipientEmail)
             message.subject = "[PartyScout Feedback] ${request.type}"
             message.text = body
-            message.from = "noreply@partyscout.live"
+            message.from = smtpUsername
             mailSender.send(message)
             logger.info("Feedback email sent for type={}", request.type)
         } catch (e: Exception) {
