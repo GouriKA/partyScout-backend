@@ -110,6 +110,40 @@ class GooglePlacesService(
     }
 
     /**
+     * Search for places by free-text query using Places API v1 searchText.
+     * Uses locationBias (soft preference) so text relevance is not sacrificed for proximity.
+     */
+    fun searchText(
+        query: String,
+        location: Location,
+        radiusMeters: Int = 8000
+    ): Mono<SearchNearbyResponse> {
+        logger.debug("Text search: query='{}', radius={}m", query, radiusMeters)
+
+        val request = SearchTextRequest(
+            textQuery = query,
+            maxResultCount = 20,
+            locationBias = LocationBias(
+                circle = Circle(
+                    center = LatLng(latitude = location.lat, longitude = location.lng),
+                    radius = radiusMeters.toDouble()
+                )
+            )
+        )
+
+        return googlePlacesWebClient
+            .post()
+            .uri("https://places.googleapis.com/v1/places:searchText")
+            .header("X-Goog-Api-Key", googlePlacesConfig.apiKey)
+            .header("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.googleMapsUri,places.websiteUri,places.internationalPhoneNumber,places.photos,places.currentOpeningHours")
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono<SearchNearbyResponse>()
+            .doOnError { error -> logger.warn("Text search failed for '{}': {}", query, error.message) }
+            .onErrorReturn(SearchNearbyResponse(emptyList()))
+    }
+
+    /**
      * Get detailed place information (optional - for enrichment)
      */
     fun getPlaceDetails(placeId: String): Mono<PlaceDetails> {

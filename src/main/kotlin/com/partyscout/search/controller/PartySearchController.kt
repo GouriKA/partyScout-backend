@@ -7,6 +7,9 @@ import com.partyscout.party.model.*
 import com.partyscout.party.service.*
 import com.partyscout.venue.service.GooglePlacesService
 import com.partyscout.persistence.service.SearchPersistenceService
+import com.partyscout.persistence.service.VenueEnrichmentService
+import com.partyscout.persona.PersonaService
+import com.partyscout.llm.LlmFilterService
 import com.partyscout.shared.event.BudgetEstimatedEvent
 import com.partyscout.shared.event.DomainEventPublisher
 import com.partyscout.shared.event.VenueSearchedEvent
@@ -17,6 +20,8 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -32,7 +37,10 @@ class PartySearchController(
     private val budgetEstimationService: BudgetEstimationService,
     private val partyDetailsService: PartyDetailsService,
     private val domainEventPublisher: DomainEventPublisher,
-    private val searchPersistenceService: SearchPersistenceService
+    private val searchPersistenceService: SearchPersistenceService,
+    private val personaService: PersonaService,
+    private val llmFilterService: LlmFilterService,
+    private val venueEnrichmentService: VenueEnrichmentService,
 ) {
     private val logger = LoggerFactory.getLogger(PartySearchController::class.java)
 
@@ -41,39 +49,65 @@ class PartySearchController(
      */
     @PostMapping("/search")
     fun searchPartyVenues(@Valid @RequestBody request: PartySearchRequest): ResponseEntity<PartySearchResponse> {
-        logger.info("Party wizard search: age={}, types={}, guests={}, zip={}", request.age, request.partyTypes, request.guestCount, LogSanitizer.maskZipCode(request.zipCode))
+        // ── 1. Derive persona ────────────────────────────────────────────────────
+        val persona = personaService.getPersona(request.age)
+        val searchQueries = personaService.getSearchQueries(request.age)
+        logger.info("Party wizard search: age={}, persona={}, queries={}, zip={}",
+            request.age, persona.label, searchQueries.size, LogSanitizer.maskZipCode(request.zipCode))
 
-        // Get Google Places types based on selected party types
-        val googlePlacesTypes = if (request.partyTypes.isNotEmpty()) {
-            partyTypeService.getGooglePlacesTypesForPartyTypes(request.partyTypes)
-        } else {
-            listOf("amusement_center", "bowling_alley", "park")
-        }
-
-        // Convert distance to meters
+        // ── 2. Geocode ZIP ───────────────────────────────────────────────────────
         val radiusMeters = (request.maxDistanceMiles * 1609.34).toInt()
-
-        // Geocode ZIP and search - block for synchronous response
         val location = googlePlacesService.geocodeZipCode(request.zipCode).block()
             ?: return ResponseEntity.badRequest().build()
 
-        val searchResponse = googlePlacesService.searchNearbyPlaces(location, googlePlacesTypes, radiusMeters).block()
-            ?: return ResponseEntity.internalServerError().build()
+        // ── 3. Run all persona query templates in parallel (max 5 concurrent) ───
+        val allPlaces: List<Place> = Flux.fromIterable(searchQueries)
+            .flatMap({ query ->
+                googlePlacesService.searchText(query, location, radiusMeters)
+                    .map { it.places ?: emptyList() }
+                    .onErrorResume { err ->
+                        logger.warn("Text search failed for '{}': {}", query, err.message)
+                        Mono.just(emptyList())
+                    }
+            }, 5)
+            .flatMapIterable { it }
+            .collectList()
+            .block() ?: emptyList()
 
-        val venues = searchResponse.places
-            ?.filter { isNotExcludedVenueType(it.types ?: emptyList()) }
-            ?.mapNotNull { place ->
+        // ── 4. Deduplicate by place ID ───────────────────────────────────────────
+        val uniquePlaces = allPlaces.distinctBy { it.id }
+        logger.info("Text search: {} raw → {} unique places", allPlaces.size, uniquePlaces.size)
+
+        // ── 5. Enrichment (batch lookup, additive — missing entries are fine) ────
+        val enrichmentMap = try {
+            venueEnrichmentService.batchLookup(uniquePlaces.mapNotNull { it.id })
+        } catch (e: Exception) {
+            logger.warn("Enrichment lookup failed: {}", e.message)
+            emptyMap()
+        }
+
+        // ── 6. LLM filter (max 20 venues, graceful fallback) ─────────────────────
+        val (filteredPlaces, llmFilterApplied) = llmFilterService.filter(
+            places = uniquePlaces.take(20),
+            age = request.age,
+            persona = persona.label,
+            enrichmentMap = enrichmentMap,
+        )
+
+        // ── 7. Map, score, apply setting/distance filters, sort ──────────────────
+        val venues = filteredPlaces
+            .filter { isNotExcludedVenueType(it.types ?: emptyList()) }
+            .mapNotNull { place ->
                 try {
                     mapToEnhancedVenue(place, location, request)
                 } catch (e: Exception) {
-                    logger.warn("Failed to map place: {}", e.message)
+                    logger.warn("Failed to map place '{}': {}", place.displayName?.text, e.message)
                     null
                 }
             }
-            ?.filter { filterBySetting(it, request.setting) }
-            ?.filter { it.distanceInMiles <= request.maxDistanceMiles }
-            ?.sortedByDescending { it.matchScore }
-            ?: emptyList()
+            .filter { filterBySetting(it, request.setting) }
+            .filter { it.distanceInMiles <= request.maxDistanceMiles }
+            .sortedByDescending { it.matchScore }
 
         val response = PartySearchResponse(
             venues = venues,
@@ -88,7 +122,9 @@ class PartySearchController(
                 maxDistanceMiles = request.maxDistanceMiles,
                 date = request.date
             ),
-            partyTypeSuggestions = partyTypeService.getPartyTypesForAge(request.age)
+            partyTypeSuggestions = partyTypeService.getPartyTypesForAge(request.age),
+            persona = persona.label,
+            llmFilterApplied = llmFilterApplied,
         )
 
         try {

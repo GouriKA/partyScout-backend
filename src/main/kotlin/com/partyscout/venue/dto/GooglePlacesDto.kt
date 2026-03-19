@@ -109,6 +109,17 @@ data class LocationRestriction(
     val circle: Circle
 )
 
+// Search Text Request (New API — text-based with location bias)
+data class SearchTextRequest(
+    val textQuery: String,
+    val maxResultCount: Int = 20,
+    val locationBias: LocationBias
+)
+
+data class LocationBias(
+    val circle: Circle
+)
+
 data class Circle(
     val center: LatLng,
     val radius: Double

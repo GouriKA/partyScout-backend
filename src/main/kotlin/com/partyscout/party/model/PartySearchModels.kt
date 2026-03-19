@@ -28,7 +28,9 @@ data class PartySearchRequest(
 data class PartySearchResponse(
     val venues: List<EnhancedVenue>,
     val searchCriteria: PartySearchCriteria,
-    val partyTypeSuggestions: List<PartyTypeSuggestion>
+    val partyTypeSuggestions: List<PartyTypeSuggestion>,
+    val persona: String,           // e.g. "Kids", "Teens", "Adults"
+    val llmFilterApplied: Boolean, // false when LLM unavailable or failed — use as UI hint
 )
 
 /**
