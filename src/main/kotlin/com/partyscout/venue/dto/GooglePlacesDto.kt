@@ -96,6 +96,37 @@ data class Review(
     val time: Long
 )
 
+// ========== PLACES AUTOCOMPLETE API (New — v1) ==========
+
+data class NewAutocompleteRequest(
+    val input: String,
+    val includedRegionCodes: List<String> = listOf("us"),
+    val includedPrimaryTypes: List<String> = listOf("locality")
+)
+
+data class NewAutocompleteResponse(
+    val suggestions: List<AutocompleteSuggestion>? = emptyList()
+)
+
+data class AutocompleteSuggestion(
+    val placePrediction: PlacePrediction? = null
+)
+
+data class PlacePrediction(
+    val placeId: String? = null,
+    val text: LocalizedText? = null,
+    val structuredFormat: StructuredFormat? = null
+)
+
+data class LocalizedText(
+    val text: String
+)
+
+data class StructuredFormat(
+    val mainText: LocalizedText? = null,
+    val secondaryText: LocalizedText? = null
+)
+
 // ========== NEW GOOGLE PLACES API (v1) ==========
 
 // Search Nearby Request (New API)

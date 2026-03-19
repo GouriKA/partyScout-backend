@@ -21,7 +21,7 @@ class SearchPersistenceService(
             guestCount = request.guestCount,
             budgetMin = request.budgetMin,
             budgetMax = request.budgetMax,
-            zipCode = request.zipCode,
+            zipCode = request.city,
             setting = request.setting,
             maxDistanceMiles = request.maxDistanceMiles,
             venueCount = venueCount

@@ -10,16 +10,16 @@ import java.time.LocalDateTime
 data class PartySearchRequest(
     @field:Min(value = 1, message = "Age must be at least 1")
     val age: Int,
-    @field:NotEmpty(message = "At least one party type is required")
-    val partyTypes: List<String>,
+    val partyTypes: List<String> = emptyList(),
     @field:Min(value = 1, message = "Guest count must be at least 1")
     val guestCount: Int,
     val budgetMin: Int? = null,
     val budgetMax: Int? = null,
-    val zipCode: String,
+    val city: String,
     val setting: String = "any", // indoor | outdoor | any
     val maxDistanceMiles: Int = 10,
-    val date: LocalDateTime? = null // Optional party date
+    val date: LocalDateTime? = null, // Optional party date
+    val textQuery: String? = null   // Direct text search (e.g. "boba tea near me")
 )
 
 /**
@@ -85,7 +85,7 @@ data class PartySearchCriteria(
     val guestCount: Int,
     val budgetMin: Int?,
     val budgetMax: Int?,
-    val zipCode: String,
+    val city: String,
     val setting: String,
     val maxDistanceMiles: Int,
     val date: LocalDateTime?

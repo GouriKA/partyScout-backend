@@ -2,7 +2,7 @@ package com.partyscout.shared.event
 
 class VenueSearchedEvent(
     correlationId: String?,
-    val zipCode: String,
+    val city: String,
     val age: Int,
     val partyTypes: List<String>,
     val guestCount: Int,

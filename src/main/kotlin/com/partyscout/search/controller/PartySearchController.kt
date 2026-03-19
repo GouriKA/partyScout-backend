@@ -52,16 +52,17 @@ class PartySearchController(
         // ── 1. Derive persona ────────────────────────────────────────────────────
         val persona = personaService.getPersona(request.age)
         val searchQueries = personaService.getSearchQueries(request.age)
-        logger.info("Party wizard search: age={}, persona={}, queries={}, zip={}",
-            request.age, persona.label, searchQueries.size, LogSanitizer.maskZipCode(request.zipCode))
+        logger.info("Party wizard search: age={}, persona={}, queries={}, city={}",
+            request.age, persona.label, searchQueries.size, request.city)
 
-        // ── 2. Geocode ZIP ───────────────────────────────────────────────────────
+        // ── 2. Geocode city ──────────────────────────────────────────────────────
         val radiusMeters = (request.maxDistanceMiles * 1609.34).toInt()
-        val location = googlePlacesService.geocodeZipCode(request.zipCode).block()
+        val location = googlePlacesService.geocodeCity(request.city).block()
             ?: return ResponseEntity.badRequest().build()
 
-        // ── 3. Run all persona query templates in parallel (max 5 concurrent) ───
-        val allPlaces: List<Place> = Flux.fromIterable(searchQueries)
+        // ── 3. Run search queries in parallel (max 5 concurrent) ───────────────
+        val queries = if (!request.textQuery.isNullOrBlank()) listOf(request.textQuery) else searchQueries
+        val allPlaces: List<Place> = Flux.fromIterable(queries)
             .flatMap({ query ->
                 googlePlacesService.searchText(query, location, radiusMeters)
                     .map { it.places ?: emptyList() }
@@ -117,7 +118,7 @@ class PartySearchController(
                 guestCount = request.guestCount,
                 budgetMin = request.budgetMin,
                 budgetMax = request.budgetMax,
-                zipCode = request.zipCode,
+                city = request.city,
                 setting = request.setting,
                 maxDistanceMiles = request.maxDistanceMiles,
                 date = request.date
@@ -136,7 +137,7 @@ class PartySearchController(
         try {
             domainEventPublisher.publish(VenueSearchedEvent(
                 correlationId = MDC.get("correlationId"),
-                zipCode = request.zipCode,
+                city = request.city,
                 age = request.age,
                 partyTypes = request.partyTypes,
                 guestCount = request.guestCount,

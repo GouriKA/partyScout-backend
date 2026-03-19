@@ -46,6 +46,64 @@ class GooglePlacesService(
     }
 
     /**
+     * Return up to 5 US city suggestions for a partial input string.
+     * Uses the New Places API (v1) autocomplete endpoint.
+     */
+    fun autocompleteCity(input: String): Mono<List<String>> {
+        if (input.isBlank()) return Mono.just(emptyList())
+
+        val requestBody = NewAutocompleteRequest(input = input)
+
+        return googlePlacesWebClient
+            .post()
+            .uri("https://places.googleapis.com/v1/places:autocomplete")
+            .header("X-Goog-Api-Key", googlePlacesConfig.apiKey)
+            .bodyValue(requestBody)
+            .retrieve()
+            .bodyToMono<NewAutocompleteResponse>()
+            .map { response ->
+                (response.suggestions ?: emptyList()).take(5).mapNotNull { suggestion ->
+                    val text = suggestion.placePrediction?.text?.text ?: return@mapNotNull null
+                    // text is "Austin, TX, USA" — strip trailing ", USA"
+                    text.removeSuffix(", USA")
+                }
+            }
+            .onErrorResume { err ->
+                logger.error("Places autocomplete error for input '{}': {}", input, err.message)
+                Mono.just(emptyList())
+            }
+    }
+
+    /**
+     * Convert city name (e.g. "Austin, TX") to latitude/longitude using Google Geocoding API
+     */
+    fun geocodeCity(city: String): Mono<Location> {
+        logger.info("Geocoding city: {}", city)
+
+        return googlePlacesWebClient
+            .get()
+            .uri("https://maps.googleapis.com/maps/api/geocode/json?address={city}&key={apiKey}",
+                city, googlePlacesConfig.apiKey)
+            .retrieve()
+            .bodyToMono<GeocodingResponse>()
+            .doOnError { error ->
+                logger.error("Geocoding API error for city {}: {}", city, error.message)
+            }
+            .map { response ->
+                if (response.status == "OK" && response.results.isNotEmpty()) {
+                    response.results[0].geometry.location
+                } else {
+                    val errorMsg = if (response.error_message.isNotEmpty()) {
+                        "Geocoding failed: ${response.status} - ${response.error_message}"
+                    } else {
+                        "Geocoding failed: ${response.status}"
+                    }
+                    throw GooglePlacesException(errorMsg)
+                }
+            }
+    }
+
+    /**
      * Search for nearby places using NEW Google Places API (v1)
      */
     fun searchNearbyPlaces(
