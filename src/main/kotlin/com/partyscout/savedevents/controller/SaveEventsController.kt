@@ -1,7 +1,7 @@
 package com.partyscout.savedevents.controller
 
 import com.google.firebase.auth.FirebaseToken
-import com.partyscout.auth.repository.UserRepository
+import com.partyscout.auth.service.UserService
 import com.partyscout.savedevents.service.SaveEventsService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -11,12 +11,10 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v2")
 class SaveEventsController(
     private val saveEventsService: SaveEventsService,
-    private val userRepository: UserRepository,
+    private val userService: UserService,
 ) {
     private fun resolveUserId(token: FirebaseToken): Long =
-        userRepository.findByFirebaseUid(token.uid)
-            .orElseThrow { NoSuchElementException("User not found — call POST /api/v2/auth/me first") }
-            .id!!
+        userService.getOrCreateUser(token).id!!
 
     // ── Profiles ────────────────────────────────────────────────────────────
 
