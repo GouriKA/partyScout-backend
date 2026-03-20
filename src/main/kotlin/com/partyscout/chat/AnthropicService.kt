@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToFlux
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Service
 class AnthropicService(
@@ -22,7 +23,6 @@ class AnthropicService(
         .baseUrl("https://api.anthropic.com")
         .build()
 
-    // Match the model already used in LlmFilterService
     private val MODEL = "claude-sonnet-4-5-20250514"
 
     private val INTENT_SYSTEM_PROMPT = """
@@ -48,7 +48,11 @@ class AnthropicService(
 
     /**
      * Extract structured party planning intent from the user's message.
-     * On any parse failure returns ChatIntent(readyToSearch=false) so the
+     *
+     * Fix #2 — JSON parse failure: uses regex to extract the first {...} block
+     * from Claude's response instead of fragile prefix/suffix stripping.
+     * Any surrounding text, code fences, or markdown are tolerated.
+     * Returns ChatIntent(readyToSearch=false) on any parse failure so the
      * controller falls back to a follow-up question stream.
      */
     fun extractIntent(message: String, history: List<ChatMessage>): ChatIntent {
@@ -81,11 +85,14 @@ class AnthropicService(
             val raw = response?.content?.firstOrNull { it.type == "text" }?.text
                 ?: return ChatIntent()
 
-            val cleaned = raw.trim()
-                .removePrefix("```json").removePrefix("```")
-                .removeSuffix("```").trim()
+            // Extract the first JSON object — tolerates code fences, leading/trailing text
+            val jsonMatch = Regex("""\{[\s\S]*\}""").find(raw)
+            if (jsonMatch == null) {
+                logger.warn("No JSON object found in intent response: {}", raw.take(200))
+                return ChatIntent()
+            }
 
-            objectMapper.readValue(cleaned, ChatIntent::class.java)
+            objectMapper.readValue(jsonMatch.value, ChatIntent::class.java)
         } catch (e: Exception) {
             logger.warn("Intent extraction failed: {} — returning readyToSearch=false", e.message)
             ChatIntent()
@@ -97,8 +104,13 @@ class AnthropicService(
     /**
      * Stream a conversational response to the SseEmitter.
      *
-     * Text tokens are sent as individual SSE data events.
-     * After the stream ends, if venues were found, sends:
+     * Fix #1 — SSE connection drop: accepts [cancelled] AtomicBoolean set by the
+     * controller when the client disconnects (onCompletion / onError callbacks).
+     * Checks the flag before every emitter.send() so mobile disconnects stop
+     * the stream immediately rather than writing to a dead socket.
+     *
+     * Text tokens arrive as individual SSE data events.
+     * After the text stream ends, if venues were found, sends:
      *   data: [VENUES]<json array of up to 3 venues>\n\n
      * then completes the emitter.
      */
@@ -108,6 +120,7 @@ class AnthropicService(
         venues: List<Place>,
         history: List<ChatMessage>,
         emitter: SseEmitter,
+        cancelled: AtomicBoolean,
     ) {
         if (apiKey.isBlank()) {
             emitter.send("I'm not able to assist right now — API key not configured.")
@@ -139,6 +152,8 @@ class AnthropicService(
                 .bodyToFlux<String>()
                 .toStream()
                 .forEach { line ->
+                    if (cancelled.get()) return@forEach   // client disconnected — stop sending
+
                     if (!line.startsWith("data: ")) return@forEach
                     val json = line.removePrefix("data: ").trim()
                     if (json.isEmpty()) return@forEach
@@ -149,11 +164,11 @@ class AnthropicService(
                             "content_block_delta" -> {
                                 if (event["delta"]?.get("type")?.asText() == "text_delta") {
                                     val text = event["delta"]["text"]?.asText() ?: ""
-                                    if (text.isNotEmpty()) emitter.send(text)
+                                    if (text.isNotEmpty() && !cancelled.get()) emitter.send(text)
                                 }
                             }
                             "message_stop" -> {
-                                if (venues.isNotEmpty()) {
+                                if (!cancelled.get() && venues.isNotEmpty()) {
                                     val venuePayload = venues.take(3).map { p ->
                                         mapOf(
                                             "id" to p.id,
@@ -176,7 +191,7 @@ class AnthropicService(
                     }
                 }
         } catch (e: Exception) {
-            logger.error("Anthropic streaming error: {}", e.message)
+            if (!cancelled.get()) logger.error("Anthropic streaming error: {}", e.message)
         } finally {
             if (!completed) emitter.complete()
         }
