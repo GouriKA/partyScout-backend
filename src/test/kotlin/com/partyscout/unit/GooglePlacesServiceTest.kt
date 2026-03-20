@@ -50,7 +50,7 @@ class GooglePlacesServiceTest {
         @DisplayName("should return Location for valid ZIP code")
         fun shouldReturnLocationForValidZipCode() {
             // Given
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val expectedLocation = Location(lat = 37.7893, lng = -122.3932)
             val geocodingResponse = GeocodingResponse(
                 results = listOf(
@@ -69,7 +69,7 @@ class GooglePlacesServiceTest {
             every { responseSpec.bodyToMono<GeocodingResponse>() } returns Mono.just(geocodingResponse)
 
             // When & Then
-            StepVerifier.create(googlePlacesService.geocodeZipCode(zipCode))
+            StepVerifier.create(googlePlacesService.geocodeCity(city))
                 .expectNext(expectedLocation)
                 .verifyComplete()
         }
@@ -78,7 +78,7 @@ class GooglePlacesServiceTest {
         @DisplayName("should throw exception for invalid ZIP code")
         fun shouldThrowExceptionForInvalidZipCode() {
             // Given
-            val zipCode = "00000"
+            val city = "Unknown City"
             val geocodingResponse = GeocodingResponse(
                 results = emptyList(),
                 status = "ZERO_RESULTS"
@@ -90,7 +90,7 @@ class GooglePlacesServiceTest {
             every { responseSpec.bodyToMono<GeocodingResponse>() } returns Mono.just(geocodingResponse)
 
             // When & Then
-            StepVerifier.create(googlePlacesService.geocodeZipCode(zipCode))
+            StepVerifier.create(googlePlacesService.geocodeCity(city))
                 .expectError(GooglePlacesException::class.java)
                 .verify()
         }
@@ -99,7 +99,7 @@ class GooglePlacesServiceTest {
         @DisplayName("should include error message in exception when API returns error")
         fun shouldIncludeErrorMessageInException() {
             // Given
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val geocodingResponse = GeocodingResponse(
                 results = emptyList(),
                 status = "REQUEST_DENIED",
@@ -112,7 +112,7 @@ class GooglePlacesServiceTest {
             every { responseSpec.bodyToMono<GeocodingResponse>() } returns Mono.just(geocodingResponse)
 
             // When & Then
-            StepVerifier.create(googlePlacesService.geocodeZipCode(zipCode))
+            StepVerifier.create(googlePlacesService.geocodeCity(city))
                 .expectErrorMatches { error ->
                     error is GooglePlacesException &&
                     error.message?.contains("REQUEST_DENIED") == true &&
@@ -125,7 +125,7 @@ class GooglePlacesServiceTest {
         @DisplayName("should handle API network errors gracefully")
         fun shouldHandleApiNetworkErrors() {
             // Given
-            val zipCode = "94105"
+            val city = "Austin, TX"
 
             every { webClient.get() } returns requestHeadersUriSpec
             every { requestHeadersUriSpec.uri(any<String>(), any(), any()) } returns requestHeadersSpec
@@ -134,7 +134,7 @@ class GooglePlacesServiceTest {
                 Mono.error(RuntimeException("Network error"))
 
             // When & Then
-            StepVerifier.create(googlePlacesService.geocodeZipCode(zipCode))
+            StepVerifier.create(googlePlacesService.geocodeCity(city))
                 .expectError(RuntimeException::class.java)
                 .verify()
         }

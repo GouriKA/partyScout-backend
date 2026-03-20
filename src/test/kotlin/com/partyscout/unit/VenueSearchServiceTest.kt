@@ -37,19 +37,19 @@ class VenueSearchServiceTest {
         fun shouldReturnEnrichedVenuesForValidAgeAndZip() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val places = listOf(
                 createMockPlace(id = "venue-1", name = "Sky Zone Trampoline Park"),
                 createMockPlace(id = "venue-2", name = "Chuck E. Cheese")
             )
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = places))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(2, venues.size)
                     assertEquals("Sky Zone Trampoline Park", venues[0].name)
@@ -63,13 +63,13 @@ class VenueSearchServiceTest {
         fun shouldReturnEmptyListWhenGeocodingFails() {
             // Given
             val age = 7
-            val zipCode = "00000"
+            val city = "Unknown City"
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns
+            every { googlePlacesService.geocodeCity(city) } returns
                 Mono.error(GooglePlacesException("Invalid ZIP code"))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertTrue(venues.isEmpty())
                 }
@@ -81,15 +81,15 @@ class VenueSearchServiceTest {
         fun shouldReturnEmptyListWhenNoPlacesFound() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = emptyList()))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertTrue(venues.isEmpty())
                 }
@@ -101,16 +101,16 @@ class VenueSearchServiceTest {
         fun shouldCalculateDistanceCorrectly() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val searchLocation = Location(lat = 37.7893, lng = -122.3932)
             val place = createMockPlace(lat = 37.8000, lng = -122.4000) // About 1 mile away
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(searchLocation)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(searchLocation)
             every { googlePlacesService.searchNearbyPlaces(searchLocation, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(place)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size)
                     val distance = venues[0].distanceInMiles
@@ -126,7 +126,7 @@ class VenueSearchServiceTest {
         fun shouldHandlePlacesWithMissingLocation() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val placeWithLocation = createMockPlace(id = "venue-1", name = "Valid Venue")
             val placeWithoutLocation = Place(
@@ -137,12 +137,12 @@ class VenueSearchServiceTest {
                 rating = 4.0
             )
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(placeWithLocation, placeWithoutLocation)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size) // Only valid venue should be included
                     assertEquals("Valid Venue", venues[0].name)
@@ -160,16 +160,16 @@ class VenueSearchServiceTest {
         fun shouldReturnSimplifiedVenueOptions() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val places = listOf(createMockPlace())
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = places))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchPartyOptions(age, zipCode))
+            StepVerifier.create(venueSearchService.searchPartyOptions(age, city))
                 .assertNext { options ->
                     assertEquals(1, options.size)
                     assertNotNull(options[0].id)
@@ -192,10 +192,10 @@ class VenueSearchServiceTest {
         fun shouldUseChildKeywordsForAge7() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = emptyList()))
 
@@ -205,7 +205,7 @@ class VenueSearchServiceTest {
                 Mono.just(SearchNearbyResponse(places = emptyList()))
 
             // When
-            venueSearchService.searchVenues(age, zipCode).block()
+            venueSearchService.searchVenues(age, city).block()
 
             // Then
             val keywords = capturedKeywords.captured
@@ -220,17 +220,17 @@ class VenueSearchServiceTest {
         fun shouldUseTeenKeywordsForAge15() {
             // Given
             val age = 15
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
 
             val capturedKeywords = slot<List<String>>()
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, capture(capturedKeywords), any()) } returns
                 Mono.just(SearchNearbyResponse(places = emptyList()))
 
             // When
-            venueSearchService.searchVenues(age, zipCode).block()
+            venueSearchService.searchVenues(age, city).block()
 
             // Then
             val keywords = capturedKeywords.captured
@@ -245,17 +245,17 @@ class VenueSearchServiceTest {
         fun shouldUseAdultKeywordsForAge25() {
             // Given
             val age = 25
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
 
             val capturedKeywords = slot<List<String>>()
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, capture(capturedKeywords), any()) } returns
                 Mono.just(SearchNearbyResponse(places = emptyList()))
 
             // When
-            venueSearchService.searchVenues(age, zipCode).block()
+            venueSearchService.searchVenues(age, city).block()
 
             // Then
             val keywords = capturedKeywords.captured
@@ -270,17 +270,17 @@ class VenueSearchServiceTest {
         @DisplayName("should use child keywords for ages 1-12")
         fun shouldUseChildKeywordsForAges1To12(age: Int) {
             // Given
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
 
             val capturedKeywords = slot<List<String>>()
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, capture(capturedKeywords), any()) } returns
                 Mono.just(SearchNearbyResponse(places = emptyList()))
 
             // When
-            venueSearchService.searchVenues(age, zipCode).block()
+            venueSearchService.searchVenues(age, city).block()
 
             // Then
             val keywords = capturedKeywords.captured
@@ -299,16 +299,16 @@ class VenueSearchServiceTest {
         fun shouldEstimateHigherCapacityForBanquetHalls() {
             // Given
             val age = 25
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val banquetHall = createMockPlace(types = listOf("banquet_hall"))
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(banquetHall)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size)
                     assertTrue(venues[0].estimatedCapacity >= 100,
@@ -322,16 +322,16 @@ class VenueSearchServiceTest {
         fun shouldEstimateLowerCapacityForArcades() {
             // Given
             val age = 15
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val arcade = createMockPlace(types = listOf("arcade"))
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(arcade)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size)
                     assertTrue(venues[0].estimatedCapacity <= 100,
@@ -350,19 +350,19 @@ class VenueSearchServiceTest {
         fun shouldFormatPriceLevelsCorrectly() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
 
             val inexpensiveVenue = createMockPlace(id = "v1", priceLevel = "PRICE_LEVEL_INEXPENSIVE")
             val moderateVenue = createMockPlace(id = "v2", priceLevel = "PRICE_LEVEL_MODERATE")
             val expensiveVenue = createMockPlace(id = "v3", priceLevel = "PRICE_LEVEL_EXPENSIVE")
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(inexpensiveVenue, moderateVenue, expensiveVenue)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(3, venues.size)
                     venues.forEach { venue ->
@@ -384,16 +384,16 @@ class VenueSearchServiceTest {
         fun shouldMarkVenuesAsKidFriendlyForChildren() {
             // Given
             val age = 7
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val playground = createMockPlace(types = listOf("playground", "park"))
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(playground)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size)
                     assertTrue(venues[0].kidFriendlyFeatures.isKidFriendly)
@@ -407,16 +407,16 @@ class VenueSearchServiceTest {
         fun shouldMarkVenuesAsTeenFriendly() {
             // Given
             val age = 15
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val arcade = createMockPlace(types = listOf("arcade"))
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(arcade)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size)
                     assertTrue(venues[0].kidFriendlyFeatures.isKidFriendly)
@@ -430,16 +430,16 @@ class VenueSearchServiceTest {
         fun shouldNotMarkVenuesAsKidFriendlyForAdults() {
             // Given
             val age = 25
-            val zipCode = "94105"
+            val city = "Austin, TX"
             val location = Location(lat = 37.7893, lng = -122.3932)
             val bar = createMockPlace(types = listOf("bar", "restaurant"))
 
-            every { googlePlacesService.geocodeZipCode(zipCode) } returns Mono.just(location)
+            every { googlePlacesService.geocodeCity(city) } returns Mono.just(location)
             every { googlePlacesService.searchNearbyPlaces(location, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = listOf(bar)))
 
             // When & Then
-            StepVerifier.create(venueSearchService.searchVenues(age, zipCode))
+            StepVerifier.create(venueSearchService.searchVenues(age, city))
                 .assertNext { venues ->
                     assertEquals(1, venues.size)
                     assertFalse(venues[0].kidFriendlyFeatures.isKidFriendly)

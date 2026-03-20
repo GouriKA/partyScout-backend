@@ -18,7 +18,7 @@ class DomainEventPublisherTest {
     fun `should publish event via ApplicationEventPublisher`() {
         val event = VenueSearchedEvent(
             correlationId = "test-correlation-id",
-            zipCode = "94105",
+            city = "Austin, TX",
             age = 7,
             partyTypes = listOf("active_play"),
             guestCount = 15,
@@ -34,7 +34,7 @@ class DomainEventPublisherTest {
     fun `should publish event with null correlation id`() {
         val event = VenueSearchedEvent(
             correlationId = null,
-            zipCode = "94105",
+            city = "Austin, TX",
             age = 7,
             partyTypes = listOf("active_play"),
             guestCount = 15,

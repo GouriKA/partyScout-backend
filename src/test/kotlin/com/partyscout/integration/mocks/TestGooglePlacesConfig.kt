@@ -17,7 +17,7 @@ class TestGooglePlacesConfig {
     fun mockGooglePlacesService(): GooglePlacesService {
         val mockService = mockk<GooglePlacesService>(relaxed = true)
 
-        every { mockService.geocodeZipCode(any()) } returns Mono.just(
+        every { mockService.geocodeCity(any()) } returns Mono.just(
             Location(lat = 37.7893, lng = -122.3932)
         )
 

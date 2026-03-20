@@ -85,7 +85,7 @@ class PartyWizardE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -289,7 +289,7 @@ class PartyWizardE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null

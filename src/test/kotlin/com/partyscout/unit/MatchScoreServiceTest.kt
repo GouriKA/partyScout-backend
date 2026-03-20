@@ -37,7 +37,7 @@ class MatchScoreServiceTest {
         guestCount = guestCount,
         budgetMin = null,
         budgetMax = budgetMax,
-        zipCode = "94105",
+        city = "Austin, TX",
         setting = setting,
         maxDistanceMiles = maxDistanceMiles,
         date = null

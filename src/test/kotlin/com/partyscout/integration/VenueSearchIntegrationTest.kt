@@ -54,7 +54,7 @@ class VenueSearchIntegrationTest {
                 createMockPlace(id = "v3", name = "Low Rated Venue", rating = 2.0)
             )
 
-            every { googlePlacesService.geocodeZipCode("94105") } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity("94105") } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(mockLocation, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = places))
 
@@ -68,7 +68,7 @@ class VenueSearchIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -103,7 +103,7 @@ class VenueSearchIntegrationTest {
             // Given
             val places = listOf(createMockPlace(rating = 4.7))
 
-            every { googlePlacesService.geocodeZipCode("94105") } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity("94105") } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(mockLocation, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = places))
 
@@ -115,7 +115,7 @@ class VenueSearchIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -151,7 +151,7 @@ class VenueSearchIntegrationTest {
                 createMockPlace(priceLevel = "PRICE_LEVEL_EXPENSIVE")
             )
 
-            every { googlePlacesService.geocodeZipCode("94105") } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity("94105") } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(mockLocation, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = places))
 
@@ -297,7 +297,7 @@ class VenueSearchIntegrationTest {
                 createMockPlace(id = "v2", name = "Budget Venue", rating = 4.0, priceLevel = "PRICE_LEVEL_INEXPENSIVE")
             )
 
-            every { googlePlacesService.geocodeZipCode("94105") } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity("94105") } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(mockLocation, any(), any()) } returns
                 Mono.just(SearchNearbyResponse(places = places))
 
@@ -307,7 +307,7 @@ class VenueSearchIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null

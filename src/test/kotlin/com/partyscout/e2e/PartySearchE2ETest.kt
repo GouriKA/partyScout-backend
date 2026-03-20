@@ -52,7 +52,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -87,7 +87,7 @@ class PartySearchE2ETest {
                 guestCount = 20,
                 budgetMin = 200,
                 budgetMax = 800,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "any",
                 maxDistanceMiles = 15,
                 date = null
@@ -116,7 +116,7 @@ class PartySearchE2ETest {
                 guestCount = 10,
                 budgetMin = null,
                 budgetMax = 400,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 5,
                 date = null
@@ -140,7 +140,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -164,7 +164,7 @@ class PartySearchE2ETest {
                 guestCount = 12,
                 budgetMin = null,
                 budgetMax = 600,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "any",
                 maxDistanceMiles = 15,
                 date = null
@@ -193,7 +193,7 @@ class PartySearchE2ETest {
                 guestCount = 10,
                 budgetMin = null,
                 budgetMax = 200,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "outdoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -217,7 +217,7 @@ class PartySearchE2ETest {
                 guestCount = 30,
                 budgetMin = 500,
                 budgetMax = 2000,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "any",
                 maxDistanceMiles = 20,
                 date = null
@@ -241,7 +241,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = null,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -270,7 +270,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 5,
                 date = null
@@ -294,7 +294,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "any",
                 maxDistanceMiles = 25,
                 date = null
@@ -323,7 +323,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -347,7 +347,7 @@ class PartySearchE2ETest {
                 guestCount = 20,
                 budgetMin = null,
                 budgetMax = 400,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "outdoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -371,7 +371,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "any",
                 maxDistanceMiles = 10,
                 date = null
@@ -434,7 +434,7 @@ class PartySearchE2ETest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "any",
                 maxDistanceMiles = 10,
                 date = null

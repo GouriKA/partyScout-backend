@@ -99,7 +99,7 @@ class PartySearchControllerTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -121,7 +121,7 @@ class PartySearchControllerTest {
                 "age" to 7,
                 "partyTypes" to listOf("active_play"),
                 "guestCount" to 15,
-                "zipCode" to "94105"
+                "city" to "Austin, TX"
             )
 
             mockMvc.perform(
@@ -155,7 +155,7 @@ class PartySearchControllerTest {
                 "age" to 10,
                 "partyTypes" to listOf("active_play", "amusement"),
                 "guestCount" to 20,
-                "zipCode" to "94105"
+                "city" to "Austin, TX"
             )
 
             mockMvc.perform(
@@ -174,7 +174,7 @@ class PartySearchControllerTest {
                     "age" to 7,
                     "partyTypes" to listOf("active_play"),
                     "guestCount" to 15,
-                    "zipCode" to "94105",
+                    "city" to "Austin, TX",
                     "setting" to setting
                 )
 
@@ -249,7 +249,7 @@ class PartySearchControllerTest {
             "age" to 7,
             "partyTypes" to listOf("active_play"),
             "guestCount" to 15,
-            "zipCode" to "94105",
+            "city" to "Austin, TX",
             "setting" to "any",
             "maxDistanceMiles" to 25
         )
@@ -259,7 +259,7 @@ class PartySearchControllerTest {
         @Test
         @DisplayName("should exclude venue with grocery_store type from search results")
         fun shouldExcludeGroceryStoreFromResults() {
-            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity(any()) } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
                 SearchNearbyResponse(
                     places = listOf(
@@ -290,7 +290,7 @@ class PartySearchControllerTest {
         @Test
         @DisplayName("should exclude venue with supermarket type from search results")
         fun shouldExcludeSupermarketFromResults() {
-            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity(any()) } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
                 SearchNearbyResponse(
                     places = listOf(
@@ -321,7 +321,7 @@ class PartySearchControllerTest {
         @Test
         @DisplayName("should exclude venue that has both restaurant and grocery_store types")
         fun shouldExcludeMixedTypeVenueContainingExcludedType() {
-            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity(any()) } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
                 SearchNearbyResponse(
                     places = listOf(
@@ -352,7 +352,7 @@ class PartySearchControllerTest {
         @Test
         @DisplayName("should include venue with amusement_center type in search results")
         fun shouldIncludeAmusementCenterInResults() {
-            every { googlePlacesService.geocodeZipCode(any()) } returns Mono.just(mockLocation)
+            every { googlePlacesService.geocodeCity(any()) } returns Mono.just(mockLocation)
             every { googlePlacesService.searchNearbyPlaces(any(), any(), any()) } returns Mono.just(
                 SearchNearbyResponse(
                     places = listOf(

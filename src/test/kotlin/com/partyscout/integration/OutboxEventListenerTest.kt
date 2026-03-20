@@ -26,7 +26,7 @@ class OutboxEventListenerTest {
     fun `should persist domain event to outbox table`() {
         val event = VenueSearchedEvent(
             correlationId = "test-outbox-correlation",
-            zipCode = "94105",
+            city = "Austin, TX",
             age = 7,
             partyTypes = listOf("active_play"),
             guestCount = 15,

@@ -38,7 +38,7 @@ class ApiValidationIntegrationTest {
             val invalidRequest = mapOf(
                 "partyTypes" to listOf("active_play"),
                 "guestCount" to 15,
-                "zipCode" to "94105",
+                "city" to "Austin, TX",
                 "setting" to "indoor",
                 "maxDistanceMiles" to 10
             )
@@ -57,7 +57,7 @@ class ApiValidationIntegrationTest {
             val invalidRequest = mapOf(
                 "age" to 7,
                 "guestCount" to 15,
-                "zipCode" to "94105",
+                "city" to "Austin, TX",
                 "setting" to "indoor",
                 "maxDistanceMiles" to 10
             )
@@ -79,7 +79,7 @@ class ApiValidationIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -121,7 +121,7 @@ class ApiValidationIntegrationTest {
                 guestCount = -5,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -144,7 +144,7 @@ class ApiValidationIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -165,7 +165,7 @@ class ApiValidationIntegrationTest {
                 "age" to 7,
                 "partyTypes" to listOf("active_play"),
                 "guestCount" to 15,
-                "zipCode" to "94105",
+                "city" to "Austin, TX",
                 "setting" to "any",
                 "maxDistanceMiles" to 10
             )
@@ -285,7 +285,7 @@ class ApiValidationIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
@@ -349,7 +349,7 @@ class ApiValidationIntegrationTest {
                 guestCount = 15,
                 budgetMin = null,
                 budgetMax = 500,
-                zipCode = "94105",
+                city = "Austin, TX",
                 setting = "indoor",
                 maxDistanceMiles = 10,
                 date = null
