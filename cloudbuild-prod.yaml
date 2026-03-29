@@ -18,7 +18,7 @@ steps:
       - '--timeout'
       - '120'
       - '--update-secrets'
-      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest,GOOGLE_PLACES_API_KEY=google-places-api-key:latest,SMTP_HOST=smtp-host:latest,SMTP_USERNAME=smtp-username:latest,SMTP_PASSWORD=smtp-password:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest'
+      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest,GOOGLE_PLACES_API_KEY=google-places-api-key:latest,SMTP_HOST=smtp-host:latest,SMTP_USERNAME=smtp-username:latest,SMTP_PASSWORD=smtp-password:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest'
       - '--update-env-vars'
       - 'FIREBASE_PROJECT_ID=$PROJECT_ID'
 

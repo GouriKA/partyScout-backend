@@ -17,6 +17,7 @@ class CorsConfig {
         // Allow frontend origins (local dev + Cloud Run + Cloud Storage)
         config.allowedOriginPatterns = listOf(
             "http://localhost:5173",
+            "http://localhost:5174",
             "http://localhost:3000",
             "https://*.run.app",
             "https://storage.googleapis.com",

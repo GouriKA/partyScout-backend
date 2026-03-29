@@ -9,9 +9,9 @@ steps:
       - 'gcr.io/$PROJECT_ID/partyscout-backend:latest'
       - '.'
 
-  # Push the image
+  # Push both tags so prod can promote :latest without rebuilding
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/partyscout-backend:$COMMIT_SHA']
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/partyscout-backend']
 
   # Deploy to canary (us-east1)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -30,7 +30,7 @@ steps:
       - '--memory'
       - '1Gi'
       - '--update-secrets'
-      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest,GOOGLE_PLACES_API_KEY=google-places-api-key:latest,SMTP_HOST=smtp-host:latest,SMTP_USERNAME=smtp-username:latest,SMTP_PASSWORD=smtp-password:latest'
+      - 'FIREBASE_SERVICE_ACCOUNT_JSON=firebase-service-account-json:latest,GOOGLE_PLACES_API_KEY=google-places-api-key:latest,SMTP_HOST=smtp-host:latest,SMTP_USERNAME=smtp-username:latest,SMTP_PASSWORD=smtp-password:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest'
       - '--update-env-vars'
       - 'FIREBASE_PROJECT_ID=$PROJECT_ID'
 

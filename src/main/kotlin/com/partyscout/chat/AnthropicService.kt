@@ -23,7 +23,7 @@ class AnthropicService(
         .baseUrl("https://api.anthropic.com")
         .build()
 
-    private val MODEL = "claude-sonnet-4-5-20250514"
+    private val MODEL = "claude-haiku-4-5-20251001"
 
     private val INTENT_SYSTEM_PROMPT = """
         You are a party planning intent extractor. Extract the user's party planning intent from their message and conversation history.
@@ -41,7 +41,10 @@ class AnthropicService(
           "readyToSearch": true or false
         }
 
-        Set readyToSearch to true when city is known (from message or context) and there is enough intent to usefully search for venues.
+        Set readyToSearch to true ONLY when:
+        - A specific city is present in the current message or conversation history, AND
+        - At least one of age, persona, occasion, or themes is also known.
+        Set readyToSearch to false if city is unknown — even if all other fields are filled in.
     """.trimIndent()
 
     // ── extractIntent ────────────────────────────────────────────────────────
@@ -79,6 +82,11 @@ class AnthropicService(
                 .header("content-type", "application/json")
                 .bodyValue(requestBody)
                 .retrieve()
+                .onStatus({ it.isError }) { res ->
+                    res.bodyToMono(String::class.java).doOnNext { body ->
+                        logger.warn("Anthropic API error {}: {}", res.statusCode(), body)
+                    }.then(reactor.core.publisher.Mono.error(RuntimeException("Anthropic ${res.statusCode()}")))
+                }
                 .bodyToMono<AnthropicResponse>()
                 .block()
 
@@ -151,11 +159,12 @@ class AnthropicService(
                 .retrieve()
                 .bodyToFlux<String>()
                 .toStream()
-                .forEach { line ->
-                    if (cancelled.get()) return@forEach   // client disconnected — stop sending
+                .forEach { chunk ->
+                    if (cancelled.get()) return@forEach
 
-                    if (!line.startsWith("data: ")) return@forEach
-                    val json = line.removePrefix("data: ").trim()
+                    // bodyToFlux<String>() with text/event-stream strips "event:" and "data:" prefixes
+                    // — each chunk is pure JSON for one SSE event
+                    val json = chunk.trim()
                     if (json.isEmpty()) return@forEach
 
                     try {
@@ -210,13 +219,23 @@ class AnthropicService(
         }
 
         val responseGuidance = if (venues.isNotEmpty()) {
-            "Briefly highlight what makes each venue stand out and help the user choose. Be warm and concise (2-3 sentences)."
+            """
+            Briefly describe what makes each venue a great fit for their party. Be warm and concise (2–3 sentences total).
+            NEVER mention "the search bar", "the form", or ask the user to fill anything in.
+            """.trimIndent()
         } else {
-            "Ask one friendly clarifying question to narrow down what the user is looking for."
+            """
+            Your goal is to collect what you need to find venues. Priority order:
+            1. If city is unknown — ask for it first. Nothing else.
+            2. If city is known but vibe/age/occasion is unclear — ask one friendly question about those.
+            Ask exactly ONE question at a time. Be warm and brief (1–2 sentences).
+            NEVER say "use the search bar", "fill out the form", "enter your date", or reference any UI element.
+            Handle everything through conversation.
+            """.trimIndent()
         }
 
         return """
-            You are PartyScout, a friendly AI assistant helping plan the perfect birthday party.
+            You are PartyScout, a friendly AI party planning assistant. You help users find the perfect venue through natural conversation.
 
             $venueContext
 
