@@ -61,7 +61,20 @@ class PartySearchController(
             ?: return ResponseEntity.badRequest().build()
 
         // ── 3. Run search queries in parallel (max 5 concurrent) ───────────────
-        val queries = if (!request.textQuery.isNullOrBlank()) listOf(request.textQuery) else searchQueries
+        // Always add outdoor-specific queries so filtering by outdoor is never empty.
+        val outdoorQueries = listOf(
+            "outdoor party venue",
+            "park birthday party",
+            "farm party venue",
+            "outdoor event space",
+            "garden party venue",
+            "picnic area birthday party",
+        )
+        val queries = if (!request.textQuery.isNullOrBlank()) {
+            listOf(request.textQuery) + outdoorQueries
+        } else {
+            searchQueries + outdoorQueries
+        }
         val allPlaces: List<Place> = Flux.fromIterable(queries)
             .flatMap({ query ->
                 googlePlacesService.searchText(query, location, radiusMeters)
@@ -277,7 +290,7 @@ class PartySearchController(
         val suggestedAddOns = partyDetailsService.getSuggestedAddOns(request.partyTypes, request.guestCount)
 
         // Determine setting
-        val setting = inferSetting(placeTypes)
+        val setting = inferSetting(placeTypes, place.displayName?.text ?: "")
 
         // Get age appropriateness
         val popularForAges = partyDetailsService.getAgeAppropriatenessDescription(request.partyTypes)
@@ -353,13 +366,28 @@ class PartySearchController(
     }
 
     /**
-     * Infer indoor/outdoor setting from place types
+     * Infer indoor/outdoor setting from place types and venue name.
+     * Google Places types are often generic (establishment, point_of_interest),
+     * so the venue name is a more reliable signal for outdoor venues.
      */
-    private fun inferSetting(types: List<String>): String {
+    private fun inferSetting(types: List<String>, name: String = ""): String {
         val lowercaseTypes = types.map { it.lowercase() }
+        val lowercaseName = name.lowercase()
+        // Exact Google Places types that are genuinely outdoor
+        val outdoorTypes = setOf("park", "zoo", "botanical_garden", "campground", "natural_feature", "rv_park", "national_park", "state_park")
+        // Name keywords that reliably indicate outdoor venues (avoid generic words like "recreation")
+        val outdoorNameKeywords = listOf("outdoor", "farm", "garden", "pavilion", "ranch", "beach", "lake", "nature center", "forest", "trail", "reserve", "campground", "picnic area", "botanical")
+        // "Park" in the name is outdoor only when standalone or at word boundary, not part of "parking"
+        val nameHasPark = Regex("\\bpark\\b").containsMatchIn(lowercaseName) && !lowercaseName.contains("parking")
+        val nameHasField = Regex("\\bfield\\b").containsMatchIn(lowercaseName)
+        val nameHasYard = Regex("\\byard\\b").containsMatchIn(lowercaseName)
+        val bothNameKeywords = listOf("pool", "aquatic", "splash pad", "water park")
         return when {
-            lowercaseTypes.any { it.contains("park") || it.contains("zoo") || it.contains("garden") } -> "outdoor"
-            lowercaseTypes.any { it.contains("pool") || it.contains("water") } -> "both"
+            lowercaseTypes.any { it in outdoorTypes } -> "outdoor"
+            outdoorNameKeywords.any { lowercaseName.contains(it) } -> "outdoor"
+            nameHasPark || nameHasField || nameHasYard -> "outdoor"
+            lowercaseTypes.any { it.contains("swimming_pool") } -> "both"
+            bothNameKeywords.any { lowercaseName.contains(it) } -> "both"
             else -> "indoor"
         }
     }

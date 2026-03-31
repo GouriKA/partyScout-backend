@@ -28,25 +28,28 @@ class AnthropicService(
     private val MODEL = "claude-haiku-4-5-20251001"
 
     private val INTENT_SYSTEM_PROMPT = """
-        You are a party planning intent extractor. Extract the user's party planning intent from their message and conversation history.
+        You are a party and event planning intent extractor. Extract structured intent from the user's message and conversation history.
 
         Return ONLY valid JSON matching this exact structure (no markdown, no code fences, no explanation):
         {
           "city": "city name or null",
-          "persona": "Kids/Teens/Adults or null",
-          "occasion": "birthday/graduation/etc or null",
+          "persona": "Baby & Toddler/Preschool/Kids/Tweens/Early Teens/Teens/Young Adults/Adults or null",
+          "occasion": "birthday/graduation/baby shower/bridal shower/anniversary/retirement/corporate/quinceañera/bar mitzvah/bat mitzvah/holiday/reunion/engagement/farewell/housewarming/other or null",
           "age": integer or null,
           "groupSize": integer or null,
           "themes": ["theme1", "theme2"],
-          "indoor": true or false or null,
+          "indoor": true (indoor preferred) or false (outdoor preferred) or null (no preference),
           "date": "YYYY-MM-DD or null",
           "readyToSearch": true or false
         }
 
-        Set readyToSearch to true ONLY when:
-        - A specific city is present in the current message or conversation history, AND
-        - At least one of age, persona, occasion, or themes is also known.
-        Set readyToSearch to false if city is unknown — even if all other fields are filled in.
+        Rules:
+        - Set indoor=false when user says "outdoor", "outside", "open air", "garden party", "park", "backyard", etc.
+        - Set indoor=true when user says "indoor", "inside", "venue hall", "event space", etc.
+        - persona should reflect the age group of the guest of honor or primary attendees.
+        - occasion covers all party/event types, not just birthdays.
+        - Set readyToSearch to true ONLY when a specific city is known AND at least one of age, persona, occasion, or themes is also known.
+        - Set readyToSearch to false if city is unknown.
     """.trimIndent()
 
     // ── extractIntent ────────────────────────────────────────────────────────
@@ -193,7 +196,7 @@ class AnthropicService(
                                             "rating" to (p.rating ?: 0.0),
                                             "website" to p.websiteUri,
                                             "googleMapsUri" to p.googleMapsUri,
-                                            "setting" to if (p.types?.any { it.contains("outdoor") || it.contains("park") || it.contains("nature") } == true) "outdoor" else "indoor",
+                                            "setting" to inferVenueSetting(p.types ?: emptyList(), p.displayName?.text ?: ""),
                                             "photos" to photos,
                                             "reason" to generateVenueReason(p),
                                         )
@@ -216,6 +219,25 @@ class AnthropicService(
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private fun inferVenueSetting(types: List<String>, name: String): String {
+        val lowercaseTypes = types.map { it.lowercase() }
+        val lowercaseName = name.lowercase()
+        val outdoorTypes = setOf("park", "zoo", "botanical_garden", "campground", "natural_feature", "rv_park", "national_park", "state_park")
+        val outdoorNameKeywords = listOf("outdoor", "farm", "garden", "pavilion", "ranch", "beach", "lake", "nature center", "forest", "trail", "reserve", "campground", "picnic area", "botanical")
+        val nameHasPark = Regex("\\bpark\\b").containsMatchIn(lowercaseName) && !lowercaseName.contains("parking")
+        val nameHasField = Regex("\\bfield\\b").containsMatchIn(lowercaseName)
+        val nameHasYard = Regex("\\byard\\b").containsMatchIn(lowercaseName)
+        val bothKeywords = listOf("pool", "aquatic", "splash pad", "water park")
+        return when {
+            lowercaseTypes.any { it in outdoorTypes } -> "outdoor"
+            outdoorNameKeywords.any { lowercaseName.contains(it) } -> "outdoor"
+            nameHasPark || nameHasField || nameHasYard -> "outdoor"
+            lowercaseTypes.any { it.contains("swimming_pool") } -> "both"
+            bothKeywords.any { lowercaseName.contains(it) } -> "both"
+            else -> "indoor"
+        }
+    }
 
     private fun generateVenueReason(place: com.partyscout.venue.dto.Place): String {
         val types = place.types ?: emptyList()

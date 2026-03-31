@@ -2,6 +2,7 @@ package com.partyscout.feedback
 
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.ClassPathResource
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.stereotype.Service
@@ -13,6 +14,9 @@ class FeedbackService(
 ) {
     private val logger = LoggerFactory.getLogger(FeedbackService::class.java)
     private val recipientEmail = "scout@partyscout.live"
+    private val autoReplyTemplate: String by lazy {
+        ClassPathResource("templates/feedback-autoreply.txt").inputStream.bufferedReader().readText()
+    }
 
     fun sendFeedbackEmail(request: FeedbackRequest) {
         val body = buildEmailBody(request)
@@ -50,15 +54,7 @@ class FeedbackService(
 
     private fun buildAutoReply(name: String?): String {
         val greeting = if (!name.isNullOrBlank()) "Hi $name," else "Hi there,"
-        return """
-            $greeting
-
-            Thanks for taking the time to share your thoughts — we read every submission and use it to make PartyScout better.
-
-            We'll follow up if we have questions.
-
-            — The PartyScout team
-        """.trimIndent()
+        return autoReplyTemplate.replace("{greeting}", greeting)
     }
 
     private fun buildEmailBody(request: FeedbackRequest): String {

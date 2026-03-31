@@ -1,5 +1,6 @@
 package com.partyscout.chat
 
+import com.partyscout.persona.PersonaService
 import com.partyscout.venue.dto.Place
 import com.partyscout.venue.service.GooglePlacesService
 import org.slf4j.LoggerFactory
@@ -7,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -14,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ChatController(
     private val anthropicService: AnthropicService,
     private val googlePlacesService: GooglePlacesService,
+    private val personaService: PersonaService,
 ) {
     private val logger = LoggerFactory.getLogger(ChatController::class.java)
     private val executor = Executors.newCachedThreadPool()
@@ -22,8 +26,6 @@ class ChatController(
     fun chat(@RequestBody request: ChatRequest): SseEmitter {
         val emitter = SseEmitter(120_000L)
 
-        // Fix #1 — SSE connection drop: set cancelled on any disconnect so the
-        // background thread stops writing to the dead socket immediately.
         val cancelled = AtomicBoolean(false)
         emitter.onCompletion { cancelled.set(true) }
         emitter.onError { _ -> cancelled.set(true) }
@@ -91,48 +93,102 @@ class ChatController(
         }
     }
 
-    // ── Venue search adapter ─────────────────────────────────────────────────
+    // ── Venue search ─────────────────────────────────────────────────────────
 
     /**
-     * Fix #3 — Empty Places results: if the intent-specific query returns nothing
-     * (common in less-covered cities), retry with a generic "birthday party venue
-     * event space" query and a wider 32 km radius before giving up.
-     *
-     * Mismatch note: spec calls placesService.search(intent) which doesn't exist.
-     * Bridges ChatIntent → GooglePlacesService via geocodeCity + searchText.
+     * Runs multiple queries in parallel (same strategy as the wizard endpoint)
+     * so chat results are as comprehensive as the wizard flow.
+     * Falls back to a broad event-space query on empty results.
      */
     private fun searchVenues(intent: ChatIntent): List<Place> {
         val city = intent.city ?: return emptyList()
         return try {
-            val location = googlePlacesService.geocodeCity(city).block()
-                ?: return emptyList()
+            val location = googlePlacesService.geocodeCity(city).block() ?: return emptyList()
+            val radius = 16_000
 
-            val primaryQuery = buildSearchQuery(intent)
-            val primary = googlePlacesService.searchText(primaryQuery, location, 16_000)
-                .block()?.places.orEmpty()
+            val queries = buildSearchQueries(intent)
+            val allPlaces: List<Place> = Flux.fromIterable(queries)
+                .flatMap({ query ->
+                    googlePlacesService.searchText(query, location, radius)
+                        .map { it.places ?: emptyList() }
+                        .onErrorResume { err ->
+                            logger.warn("Chat search failed for '{}': {}", query, err.message)
+                            Mono.just(emptyList())
+                        }
+                }, 5)
+                .flatMapIterable { it }
+                .collectList()
+                .block()
+                ?.distinctBy { it.id }
+                ?: emptyList()
 
-            if (primary.isNotEmpty()) return primary
+            if (allPlaces.isNotEmpty()) return allPlaces.take(20)
 
-            // Fallback for less-covered cities: broader query, wider radius
-            logger.info("Primary search empty for city={}, trying fallback query", city)
-            googlePlacesService.searchText("birthday party venue event space", location, 32_000)
-                .block()?.places.orEmpty()
+            // Fallback: broader query, wider radius
+            logger.info("All queries returned empty for city={}, trying fallback", city)
+            googlePlacesService.searchText(buildFallbackQuery(intent), location, 32_000)
+                .block()?.places.orEmpty().take(20)
         } catch (e: Exception) {
             logger.warn("Venue search failed for city={}: {}", city, e.message)
             emptyList()
         }
     }
 
-    private fun buildSearchQuery(intent: ChatIntent): String {
-        return buildList {
-            when (intent.indoor) {
-                false -> add("outdoor")
-                true  -> add("indoor")
-                null  -> {}
+    /**
+     * Builds a diverse set of search queries from the extracted intent.
+     * Uses PersonaService queries when age is known for comprehensive coverage
+     * across all age groups and venue types. Applies indoor/outdoor prefix when specified.
+     */
+    private fun buildSearchQueries(intent: ChatIntent): List<String> {
+        val settingPrefix = when (intent.indoor) {
+            false -> "outdoor "
+            true  -> "indoor "
+            null  -> ""
+        }
+        val occasion = intent.occasion ?: "birthday party"
+
+        // Persona-based queries from PersonaService (covers all ages from baby to adult)
+        val personaQueries: List<String> = when {
+            intent.age != null -> personaService.getSearchQueries(intent.age).take(10)
+            intent.persona != null -> {
+                val approxAge = personaToApproxAge(intent.persona)
+                if (approxAge != null) personaService.getSearchQueries(approxAge).take(10) else emptyList()
             }
-            addAll(intent.themes)
-            add(intent.occasion ?: "birthday party")
-            intent.persona?.lowercase()?.let { add(it) }
-        }.joinToString(" ")
+            else -> emptyList()
+        }.map { "$settingPrefix$it" }
+
+        // Intent-specific queries
+        val intentQueries = buildList {
+            add("${settingPrefix}$occasion venue event space")
+            if (intent.themes.isNotEmpty()) {
+                add("${settingPrefix}${intent.themes.joinToString(" ")} $occasion")
+            }
+            if (intent.groupSize != null && intent.groupSize > 50) {
+                add("${settingPrefix}large event venue $occasion")
+            }
+        }
+
+        return (intentQueries + personaQueries).distinct().take(12)
+    }
+
+    private fun buildFallbackQuery(intent: ChatIntent): String {
+        val setting = when (intent.indoor) {
+            false -> "outdoor "
+            true  -> "indoor "
+            null  -> ""
+        }
+        return "${setting}party venue event space ${intent.occasion ?: "birthday"}"
+    }
+
+    private fun personaToApproxAge(persona: String): Int? = when (persona.lowercase()) {
+        "baby", "toddler", "baby & toddler"   -> 1
+        "preschool", "preschooler"             -> 4
+        "kids", "children", "kid"              -> 7
+        "tweens", "tween"                      -> 11
+        "early teens"                          -> 14
+        "teens", "teen", "teenager"            -> 16
+        "young adults", "young adult"          -> 20
+        "adults", "adult"                      -> 30
+        else                                   -> null
     }
 }
