@@ -28,12 +28,37 @@ class FeedbackService(
             message.subject = "[PartyScout Feedback] ${request.type}"
             message.text = body
             message.from = smtpUsername
+            request.email?.takeIf { it.isNotBlank() }?.let { message.replyTo = it }
             mailSender.send(message)
             logger.info("Feedback email sent for type={}", request.type)
+
+            // Auto-reply to submitter if email is available
+            request.email?.takeIf { it.isNotBlank() }?.let { userEmail ->
+                val reply = SimpleMailMessage()
+                reply.setTo(userEmail)
+                reply.subject = "Thanks for your feedback — PartyScout"
+                reply.from = smtpUsername
+                reply.text = buildAutoReply(request.name)
+                mailSender.send(reply)
+                logger.info("Auto-reply sent to {}", userEmail)
+            }
         } catch (e: Exception) {
             logger.error("Failed to send feedback email: {}", e.message)
             throw e
         }
+    }
+
+    private fun buildAutoReply(name: String?): String {
+        val greeting = if (!name.isNullOrBlank()) "Hi $name," else "Hi there,"
+        return """
+            $greeting
+
+            Thanks for taking the time to share your thoughts — we read every submission and use it to make PartyScout better.
+
+            We'll follow up if we have questions.
+
+            — The PartyScout team
+        """.trimIndent()
     }
 
     private fun buildEmailBody(request: FeedbackRequest): String {
