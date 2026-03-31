@@ -12,7 +12,7 @@ class FeedbackService(
     @Value("\${spring.mail.username:}") private val smtpUsername: String
 ) {
     private val logger = LoggerFactory.getLogger(FeedbackService::class.java)
-    private val recipientEmail = "gouri.kulkarni@partyscout.live"
+    private val recipientEmail = "scout@partyscout.live"
 
     fun sendFeedbackEmail(request: FeedbackRequest) {
         val body = buildEmailBody(request)

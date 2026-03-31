@@ -59,7 +59,7 @@ class FeedbackServiceTest {
             service().sendFeedbackEmail(requestWithEmail)
 
             val feedback = messages.first()
-            assertTrue(feedback.to!!.contains("gouri.kulkarni@partyscout.live"))
+            assertTrue(feedback.to!!.contains("scout@partyscout.live"))
             assertTrue(feedback.subject!!.contains("Bug Report"))
         }
 
