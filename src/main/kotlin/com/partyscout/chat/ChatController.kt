@@ -125,6 +125,11 @@ class ChatController(
 
     private fun buildSearchQuery(intent: ChatIntent): String {
         return buildList {
+            when (intent.indoor) {
+                false -> add("outdoor")
+                true  -> add("indoor")
+                null  -> {}
+            }
             addAll(intent.themes)
             add(intent.occasion ?: "birthday party")
             intent.persona?.lowercase()?.let { add(it) }
