@@ -2,6 +2,7 @@ package com.partyscout.chat
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.partyscout.llm.AnthropicResponse
+import com.partyscout.venue.config.GooglePlacesConfig
 import com.partyscout.venue.dto.Place
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AnthropicService(
     @Value("\${ANTHROPIC_API_KEY:}") private val apiKey: String,
     private val objectMapper: ObjectMapper,
+    private val googlePlacesConfig: GooglePlacesConfig,
 ) {
     private val logger = LoggerFactory.getLogger(AnthropicService::class.java)
 
@@ -126,6 +128,7 @@ class AnthropicService(
         userMessage: String,
         intent: ChatIntent,
         venues: List<Place>,
+        knownVenues: List<KnownVenue> = emptyList(),
         history: List<ChatMessage>,
         emitter: SseEmitter,
         cancelled: AtomicBoolean,
@@ -136,7 +139,7 @@ class AnthropicService(
             return
         }
 
-        val systemPrompt = buildSystemPrompt(intent, venues)
+        val systemPrompt = buildSystemPrompt(intent, venues, knownVenues)
         val messages = history.map { mapOf("role" to it.role, "content" to it.content) } +
                 listOf(mapOf("role" to "user", "content" to userMessage))
 
@@ -179,6 +182,9 @@ class AnthropicService(
                             "message_stop" -> {
                                 if (!cancelled.get() && venues.isNotEmpty()) {
                                     val venuePayload = venues.take(3).map { p ->
+                                        val photos = p.photos?.take(3)?.map { photo ->
+                                            "https://places.googleapis.com/v1/${photo.name}/media?key=${googlePlacesConfig.apiKey}&maxWidthPx=400"
+                                        } ?: emptyList()
                                         mapOf(
                                             "id" to p.id,
                                             "googlePlaceId" to p.id,
@@ -187,6 +193,9 @@ class AnthropicService(
                                             "rating" to (p.rating ?: 0.0),
                                             "website" to p.websiteUri,
                                             "googleMapsUri" to p.googleMapsUri,
+                                            "setting" to if (p.types?.any { it.contains("outdoor") || it.contains("park") || it.contains("nature") } == true) "outdoor" else "indoor",
+                                            "photos" to photos,
+                                            "reason" to generateVenueReason(p),
                                         )
                                     }
                                     emitter.send("[VENUES]${objectMapper.writeValueAsString(venuePayload)}")
@@ -208,40 +217,74 @@ class AnthropicService(
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private fun buildSystemPrompt(intent: ChatIntent, venues: List<Place>): String {
-        val venueContext = if (venues.isEmpty()) {
-            "No venues found yet."
-        } else {
-            "Venues found:\n" + venues.take(3).joinToString("\n") { p ->
-                "- ${p.displayName?.text ?: "Unknown"} at ${p.formattedAddress ?: ""}" +
-                        (p.rating?.let { " (rated $it)" } ?: "")
-            }
+    private fun generateVenueReason(place: com.partyscout.venue.dto.Place): String {
+        val types = place.types ?: emptyList()
+        return when {
+            types.any { it.contains("bowling") }                              -> "Great for group fun"
+            types.any { it.contains("escape") }                               -> "Thrilling team challenge"
+            types.any { it.contains("trampoline") }                           -> "High-energy jumping fun"
+            types.any { it.contains("laser") }                                -> "Epic laser battles"
+            types.any { it.contains("arcade") || it.contains("amusement") }  -> "Games for everyone"
+            types.any { it.contains("art") || it.contains("studio") }        -> "Creative & hands-on"
+            types.any { it.contains("park") || it.contains("nature") }       -> "Open-air adventure"
+            types.any { it.contains("spa") || it.contains("beauty") }        -> "Relaxing & fun"
+            types.any { it.contains("restaurant") || it.contains("food") }   -> "Great food & atmosphere"
+            types.any { it.contains("sports") || it.contains("gym") }        -> "Active & energetic"
+            place.rating != null && place.rating >= 4.8                       -> "Exceptional party venue"
+            else                                                              -> "Top-rated party spot"
+        }
+    }
+
+    private fun buildSystemPrompt(intent: ChatIntent, venues: List<Place>, knownVenues: List<KnownVenue> = emptyList()): String {
+
+        val venueContext = when {
+            venues.isNotEmpty() ->
+                "Venues found:\n" + venues.take(3).mapIndexed { i, p ->
+                    "${i + 1}. ${p.displayName?.text ?: "Unknown"} — ${p.formattedAddress ?: ""}${p.rating?.let { ", rated $it/5" } ?: ""}"
+                }.joinToString("\n")
+            knownVenues.isNotEmpty() ->
+                "Venues shown to the user:\n" + knownVenues.joinToString("\n") { v ->
+                    "${v.num}. ${v.name}${v.rating?.let { " — $it/5" } ?: ""}${v.address?.let { " — $it" } ?: ""}${v.setting?.let { " — $it" } ?: ""}${v.reason?.let { " — $it" } ?: ""}"
+                }
+            else -> ""
         }
 
-        val responseGuidance = if (venues.isNotEmpty()) {
-            """
-            Briefly describe what makes each venue a great fit for their party. Be warm and concise (2–3 sentences total).
-            NEVER mention "the search bar", "the form", or ask the user to fill anything in.
+        val task = when {
+            venues.isNotEmpty() -> """
+                Venues were just found. Write one punchy line (max 8 words) to hand them off.
+                Example: "Here's what I found:" or "Three solid options for you."
+                Do NOT describe the venues — the UI cards do that.
             """.trimIndent()
-        } else {
-            """
-            Your goal is to collect what you need to find venues. Priority order:
-            1. If city is unknown — ask for it first. Nothing else.
-            2. If city is known but vibe/age/occasion is unclear — ask one friendly question about those.
-            Ask exactly ONE question at a time. Be warm and brief (1–2 sentences).
-            NEVER say "use the search bar", "fill out the form", "enter your date", or reference any UI element.
-            Handle everything through conversation.
+            knownVenues.isNotEmpty() -> """
+                Answer the user's follow-up about the venues listed above.
+                Reference venues by number and name. Be direct. Max 3 sentences.
+            """.trimIndent()
+            else -> """
+                Gather what you need to find venues. Rules:
+                - City unknown → ask for city only. One sentence.
+                - City known, vibe/age/occasion unclear → ask exactly one follow-up question.
+                - Never ask two things at once.
+                - Never reference any UI element, form, or search bar.
             """.trimIndent()
         }
 
         return """
-            You are PartyScout, a friendly AI party planning assistant. You help users find the perfect venue through natural conversation.
+            You are Scout — a sharp, no-nonsense party planning local who has helped hundreds of people find the perfect venue.
 
-            $venueContext
+            Your voice:
+            - Talk like a knowledgeable, courteous friend — warm, genuine, never stiff.
+            - Acknowledge what the user shares before moving on (e.g. "A birthday for twins — fun!").
+            - Short sentences. Real words. Zero fluff.
+            - Never say "Certainly!", "Of course!", "I'd be happy to", or "As an AI".
+            - Never use hollow filler phrases. Every sentence should mean something.
+            - Polite but efficient. One question at a time. Trust the user's intelligence.
+            - If someone seems unsure, reassure them briefly — then guide them forward.
+            - Use "I" naturally — you are Scout, a person, not a product.
 
-            Context: city=${intent.city ?: "unknown"}, persona=${intent.persona ?: "unspecified"}, occasion=${intent.occasion ?: "birthday party"}
+            ${if (venueContext.isNotEmpty()) "Context:\n$venueContext\n" else ""}Party details: city=${intent.city ?: "unknown"}, for=${intent.persona ?: "unspecified"}, occasion=${intent.occasion ?: "birthday"}
 
-            $responseGuidance
+            Your task for this response:
+            $task
         """.trimIndent()
     }
 }

@@ -6,6 +6,16 @@ data class ChatRequest(
     val message: String,
     val conversationHistory: List<ChatMessage>,
     val existingContext: LandingPageContext,
+    val knownVenues: List<KnownVenue> = emptyList(),
+)
+
+data class KnownVenue(
+    val num: Int,
+    val name: String,
+    val rating: Double? = null,
+    val address: String? = null,
+    val setting: String? = null,
+    val reason: String? = null,
 )
 
 data class ChatMessage(

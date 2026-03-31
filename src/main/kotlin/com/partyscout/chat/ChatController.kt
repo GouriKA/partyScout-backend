@@ -60,6 +60,7 @@ class ChatController(
                     userMessage = request.message,
                     intent = mergedIntent,
                     venues = venues,
+                    knownVenues = request.knownVenues,
                     history = cleanHistory,
                     emitter = emitter,
                     cancelled = cancelled,
