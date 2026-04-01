@@ -72,3 +72,7 @@ Original name "Entertainment" was too similar to "Characters & Performers" (whic
 - Old types removed from taxonomy
 - No database migration needed (stateless)
 - Frontend automatically uses new types from API
+
+## Addendum (2026-03-31)
+
+`PersonaService` expands each age into 15-20 age-appropriate Google Places search queries beyond the 6 broad type codes. This means the search is comprehensive even when users pick a broad type like "Active Play" — the backend fans out to queries like "trampoline park birthday", "gymnastics studio party", "skating rink birthday" etc. based on the child's exact age. The 6 party type codes remain the user-facing taxonomy; the query expansion is an implementation detail.

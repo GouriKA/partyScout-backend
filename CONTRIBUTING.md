@@ -54,6 +54,7 @@ Thank you for your interest in contributing to PartyScout! This document provide
    ```bash
    cd partyScout-backend
    export GOOGLE_PLACES_API_KEY=your_key_here
+   export ANTHROPIC_API_KEY=your_key_here
    ./gradlew bootRun
    ```
 
@@ -68,13 +69,13 @@ Thank you for your interest in contributing to PartyScout! This document provide
    - Backend: http://localhost:8080/api/v2/party-wizard/party-types/7
    - Frontend: http://localhost:5173
 
+**Note**: Firebase and SMTP features are optional for local dev. The app falls back gracefully when these are not configured.
+
 ---
 
 ## Development Workflow
 
 ### Branch Naming
-
-Use descriptive branch names:
 
 | Type | Format | Example |
 |------|--------|---------|
@@ -100,6 +101,7 @@ Use descriptive branch names:
    # Frontend
    npm run lint
    npm run build
+   npm run test:run
    ```
 
 4. **Push and create PR**:
@@ -118,6 +120,7 @@ Use descriptive branch names:
 - [ ] Linting passes (no warnings)
 - [ ] Documentation updated if needed
 - [ ] Commit messages follow conventions
+- [ ] Tests committed separately from code (see Testing Convention)
 
 ### PR Template
 
@@ -139,7 +142,7 @@ Add screenshots for UI changes
 
 ## Checklist
 - [ ] Self-reviewed code
-- [ ] Added tests
+- [ ] Added tests (separate commit)
 - [ ] Updated documentation
 ```
 
@@ -161,39 +164,28 @@ Add screenshots for UI changes
 ```kotlin
 // Good: Clear naming, single responsibility
 class VenueSearchService(
-    private val placesClient: GooglePlacesClient,
+    private val placesClient: GooglePlacesService,
     private val scoreService: MatchScoreService
 ) {
     fun searchVenues(request: SearchRequest): List<Venue> {
-        val places = placesClient.searchNearby(request.location)
+        val places = placesClient.searchText(request.query, request.location, request.radius)
         return places.map { scoreService.scoreVenue(it, request) }
     }
-}
-
-// Bad: Unclear naming, doing too much
-class Helper {
-    fun doStuff(x: Any): Any { ... }
 }
 ```
 
 **Best Practices**:
 - Use `data class` for DTOs
 - Prefer immutability (`val` over `var`)
-- Use meaningful names
 - Keep functions small and focused
-- Add KDoc for public APIs
+- All business logic in `service/` classes — controllers are thin
 
 ### Frontend (React/JavaScript)
-
-**Style Guide**: Follow [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)
 
 ```javascript
 // Good: Functional component, clear props
 function VenueCard({ venue, onSelect, isComparing }) {
-  const handleClick = useCallback(() => {
-    onSelect(venue);
-  }, [venue, onSelect]);
-
+  const handleClick = useCallback(() => onSelect(venue), [venue, onSelect]);
   return (
     <div className="venue-card" onClick={handleClick}>
       <h3>{venue.name}</h3>
@@ -201,21 +193,13 @@ function VenueCard({ venue, onSelect, isComparing }) {
     </div>
   );
 }
-
-// Bad: Class component, unclear props
-class Card extends Component {
-  render() {
-    return <div onClick={() => this.props.cb(this.props.d)}>{this.props.d.n}</div>;
-  }
-}
 ```
 
 **Best Practices**:
 - Use functional components with hooks
-- Destructure props
-- Use meaningful component names
-- Keep components small and focused
-- Use CSS modules or BEM naming
+- All API calls in context files — never fetch directly from components
+- CSS co-located with each component (`.css` alongside `.jsx`)
+- Unit tests in `__tests__/` subdirectory
 
 ### CSS
 
@@ -223,25 +207,7 @@ class Card extends Component {
 /* Good: BEM naming, CSS variables */
 .venue-card {
   padding: var(--spacing-md);
-  border-radius: var(--radius-lg);
-}
-
-.venue-card__title {
-  font-size: var(--font-lg);
-}
-
-.venue-card--highlighted {
-  border-color: var(--primary);
-}
-
-/* Bad: Generic names, magic numbers */
-.card {
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.title {
-  font-size: 18px;
+  border-radius: var(--radius);
 }
 ```
 
@@ -253,13 +219,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 <type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
 ```
-
-### Types
 
 | Type | Description |
 |------|-------------|
@@ -271,24 +231,21 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 | `test` | Adding tests |
 | `chore` | Maintenance tasks |
 
-### Examples
-
+**Examples**:
 ```bash
-# Good
-feat(wizard): add step indicator component
-fix(venue-card): correct price formatting for large numbers
-docs(api): add examples for search endpoint
-refactor(services): extract scoring logic to separate service
-
-# Bad
-update code
-fix bug
-WIP
+feat(chat): add SSE streaming AI chat endpoint
+fix(search): correct outdoor venue inference for amusement_park type
+docs(api): add saved-events endpoints to API.md
+test(chat): add unit tests for AnthropicService intent extraction
 ```
 
 ---
 
 ## Testing
+
+### Testing Convention
+
+**After every code commit, create a separate follow-up commit with tests.** Never bundle test changes in the same commit as feature/fix code.
 
 ### Backend Testing
 
@@ -296,54 +253,42 @@ WIP
 @Test
 fun `should return party types for age 7`() {
     val types = partyTypeService.getPartyTypesForAge(7)
-
     assertThat(types).isNotEmpty()
     assertThat(types).allMatch { it.minAge <= 7 && it.maxAge >= 7 }
 }
-
-@Test
-fun `should calculate match score correctly`() {
-    val venue = createTestVenue(rating = 4.5, priceLevel = 2)
-    val request = createTestRequest(budgetMax = 500)
-
-    val score = matchScoreService.calculateScore(venue, request)
-
-    assertThat(score).isBetween(0, 100)
-}
 ```
 
-**Run tests**:
 ```bash
 ./gradlew test
+./gradlew test --tests "com.partyscout.unit.*"
+./gradlew test --tests "com.partyscout.integration.*"
+./gradlew test --tests "com.partyscout.e2e.*"
 ```
+
+**Rules**:
+- Use MockK for unit tests
+- Never mock the database in integration tests — use real H2
+- Use MockWebServer to stub Google Places and Anthropic APIs in integration tests
 
 ### Frontend Testing
 
 ```javascript
 describe('VenueCard', () => {
   it('renders venue name', () => {
-    const venue = { name: 'Sky Zone', address: '123 Main St' };
-    render(<VenueCard venue={venue} />);
-
+    render(<VenueCard venue={{ name: 'Sky Zone', address: '123 Main St' }} />);
     expect(screen.getByText('Sky Zone')).toBeInTheDocument();
-  });
-
-  it('calls onSelect when clicked', () => {
-    const onSelect = jest.fn();
-    const venue = { id: '1', name: 'Sky Zone' };
-
-    render(<VenueCard venue={venue} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole('button'));
-
-    expect(onSelect).toHaveBeenCalledWith(venue);
   });
 });
 ```
 
-**Run tests**:
 ```bash
-npm test
+npm run test:run       # Vitest single run
+npm run test:e2e       # Playwright headless
 ```
+
+**E2E Rules**:
+- Always call `setupApiMocks(page)` in `beforeEach` — never hit a real backend
+- Wait for party-types API response before interacting with `PartyTypeSelector`
 
 ---
 
@@ -353,22 +298,14 @@ npm test
 
 - Adding new API endpoints → Update `docs/API.md`
 - Changing architecture → Update `docs/ARCHITECTURE.md`
-- Adding features → Update `docs/SPEC.md`
-- Changing setup → Update `README.md`
-
-### Documentation Style
-
-- Use clear, concise language
-- Include code examples
-- Add diagrams for complex concepts
-- Keep docs up to date with code
+- Adding features → Update `CHANGELOG.md`
+- Changing setup → Update `README.md` and `CONTRIBUTING.md`
 
 ---
 
 ## Questions?
 
 - Open an issue for bugs or feature requests
-- Start a discussion for questions
-- Email: [maintainer email]
+- Email: scout@partyscout.live
 
-Thank you for contributing! 🎉
+Thank you for contributing!

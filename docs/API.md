@@ -2,20 +2,25 @@
 
 ## Base URL
 
-**Production**: `https://partyscout-backend-869352526308.us-central1.run.app`
+**Production**: `https://partyscout.app`
+**Canary**: `https://partyscout-backend-canary-*.a.run.app`
 **Local Development**: `http://localhost:8080`
 
 ## Authentication
 
-Currently, the API is public and does not require authentication.
+Most endpoints are public. Saved-events endpoints require a Firebase ID token:
+
+```
+Authorization: Bearer <firebase-id-token>
+```
 
 ---
 
 ## Endpoints
 
-### 1. Search Party Venues
+### Party Wizard
 
-Search for venues based on party criteria.
+#### Search Venues
 
 **Endpoint**: `POST /api/v2/party-wizard/search`
 
@@ -27,26 +32,26 @@ Search for venues based on party criteria.
   "guestCount": 15,
   "budgetMin": 100,
   "budgetMax": 500,
-  "zipCode": "94105",
+  "city": "Boston",
   "setting": "indoor",
   "maxDistanceMiles": 10,
-  "date": "2026-03-15T14:00:00"
+  "date": "2026-06-15T14:00:00",
+  "textQuery": null
 }
 ```
 
-**Request Fields**:
-
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `age` | integer | Yes | Child's age (1-18) |
-| `partyTypes` | string[] | Yes | List of party type codes |
-| `guestCount` | integer | Yes | Number of guests expected |
+| `age` | integer | No | Child's age (used for persona/query set) |
+| `partyTypes` | string[] | No | Party type codes |
+| `guestCount` | integer | No | Number of guests |
 | `budgetMin` | integer | No | Minimum budget in USD |
 | `budgetMax` | integer | No | Maximum budget in USD |
-| `zipCode` | string | Yes | ZIP code for location search |
+| `city` | string | Yes | City name (e.g. "Boston, MA") |
 | `setting` | string | No | `indoor`, `outdoor`, or `any` (default: `any`) |
-| `maxDistanceMiles` | integer | No | Maximum travel distance (default: 10) |
-| `date` | string | No | Party date in ISO 8601 format |
+| `maxDistanceMiles` | integer | No | Max travel distance (default: 10) |
+| `date` | string | No | Party date ISO 8601 |
+| `textQuery` | string | No | Free-text search query (landing page) |
 
 **Response**:
 ```json
@@ -54,102 +59,45 @@ Search for venues based on party criteria.
   "venues": [
     {
       "id": "ChIJ...",
+      "googlePlaceId": "ChIJ...",
       "name": "Sky Zone Trampoline Park",
-      "address": "123 Jump St, San Francisco, CA 94105",
-      "phoneNumber": "(415) 555-0123",
+      "address": "123 Jump St, Boston, MA 02101",
+      "phoneNumber": "(617) 555-0123",
       "website": "https://skyzone.com",
+      "googleMapsUri": "https://maps.google.com/?cid=...",
       "rating": 4.5,
       "reviewCount": 234,
       "priceLevel": 2,
       "setting": "indoor",
       "distanceInMiles": 2.3,
       "matchScore": 87,
-      "matchReasons": [
-        "Great for ages 5-12",
-        "Within your budget",
-        "Highly rated (4.5 stars)"
-      ],
+      "matchReasons": ["Great for ages 5-12", "Within your budget", "Highly rated (4.5 stars)"],
       "estimatedTotal": 350,
       "estimatedPricePerPerson": 23,
-      "includedItems": [
-        "2 hours jump time",
-        "Private party room",
-        "Party host",
-        "Grip socks for all guests"
-      ],
-      "notIncluded": [
-        "Food and beverages",
-        "Cake",
-        "Decorations",
-        "Goody bags"
-      ],
+      "includedItems": ["2 hours jump time", "Private party room", "Party host"],
+      "notIncluded": ["Food and beverages", "Cake", "Decorations"],
       "suggestedAddOns": [
-        {
-          "name": "Pizza Package",
-          "description": "2 pizzas + drinks for all guests",
-          "estimatedCost": 75,
-          "isRecommended": true
-        }
+        { "name": "Pizza Package", "description": "2 pizzas + drinks", "estimatedCost": 75, "isRecommended": true }
       ],
       "popularForAges": "Best for ages 5-12",
-      "typicalPartyDuration": "2 hours"
+      "typicalPartyDuration": "2 hours",
+      "photos": ["https://places.googleapis.com/v1/.../media?key=...&maxWidthPx=800"]
     }
   ],
   "searchCriteria": {
-    "location": "San Francisco, CA",
+    "location": "Boston, MA",
     "radius": 10,
     "partyTypes": ["active_play"],
     "totalResults": 12
-  },
-  "partyTypeSuggestions": []
+  }
 }
 ```
 
-**Response Fields**:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `venues` | Venue[] | List of matching venues |
-| `searchCriteria` | object | Echo of search parameters |
-| `partyTypeSuggestions` | Suggestion[] | Additional party type recommendations |
-
-**Venue Object**:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Google Places ID |
-| `name` | string | Venue name |
-| `address` | string | Full address |
-| `phoneNumber` | string | Contact phone |
-| `website` | string | Venue website URL |
-| `rating` | number | Google rating (0-5) |
-| `reviewCount` | integer | Number of Google reviews |
-| `priceLevel` | integer | Price level (1-4) |
-| `setting` | string | `indoor` or `outdoor` |
-| `distanceInMiles` | number | Distance from ZIP code |
-| `matchScore` | integer | Match score (0-100) |
-| `matchReasons` | string[] | Why this venue matches |
-| `estimatedTotal` | integer | Estimated party cost |
-| `estimatedPricePerPerson` | integer | Per-person cost |
-| `includedItems` | string[] | What's included |
-| `notIncluded` | string[] | What to bring |
-| `suggestedAddOns` | AddOn[] | Optional upgrades |
-| `popularForAges` | string | Age recommendation |
-| `typicalPartyDuration` | string | Typical party length |
-
 ---
 
-### 2. Get Party Types for Age
-
-Get party type suggestions appropriate for a specific age.
+#### Get Party Types (age-filtered)
 
 **Endpoint**: `GET /api/v2/party-wizard/party-types/{age}`
-
-**Path Parameters**:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `age` | integer | Child's age (1-18) |
 
 **Example**: `GET /api/v2/party-wizard/party-types/7`
 
@@ -164,46 +112,27 @@ Get party type suggestions appropriate for a specific age.
     "ageRange": "Ages 3-16",
     "averageCost": "$200-450",
     "popularityScore": 5
-  },
-  {
-    "type": "creative",
-    "displayName": "Creative",
-    "description": "Arts, crafts, cooking, and hands-on activities",
-    "icon": "palette",
-    "ageRange": "Ages 4-14",
-    "averageCost": "$250-500",
-    "popularityScore": 4
   }
 ]
 ```
 
-**Party Type Suggestion Fields**:
+---
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | Party type code |
-| `displayName` | string | Human-readable name |
-| `description` | string | Brief description |
-| `icon` | string | Icon identifier |
-| `ageRange` | string | Suitable age range |
-| `averageCost` | string | Typical cost range |
-| `popularityScore` | integer | Popularity for this age (1-5) |
+#### Get All Party Types
+
+**Endpoint**: `GET /api/v2/party-wizard/party-types`
+
+Returns all 6 party types regardless of age.
 
 ---
 
-### 3. Estimate Budget
-
-Get a budget estimate for a party configuration.
+#### Estimate Budget
 
 **Endpoint**: `POST /api/v2/party-wizard/estimate-budget`
 
 **Request Body**:
 ```json
-{
-  "partyType": "active_play",
-  "guestCount": 15,
-  "priceLevel": 2
-}
+{ "partyType": "active_play", "guestCount": 15, "priceLevel": 2 }
 ```
 
 **Response**:
@@ -211,13 +140,146 @@ Get a budget estimate for a party configuration.
 {
   "estimatedTotal": 350,
   "estimatedPerPerson": 23,
-  "breakdown": {
-    "venueBase": 200,
-    "perGuestCost": 150,
-    "typicalAddOns": 75
-  }
+  "breakdown": { "venueBase": 200, "perGuestCost": 150, "typicalAddOns": 75 }
 }
 ```
+
+---
+
+#### Get Party Details
+
+**Endpoint**: `GET /api/v2/party-wizard/party-details`
+
+**Query Parameters**: `types=active_play,amusement`
+
+Returns venue category details including included items, what to bring, and suggested add-ons.
+
+---
+
+### AI Chat
+
+**Endpoint**: `POST /api/chat`
+
+Returns `text/event-stream` (SSE).
+
+**Request Body**:
+```json
+{
+  "message": "Looking for an outdoor birthday party for my 8-year-old in Boston",
+  "conversationHistory": [
+    { "role": "user", "content": "..." },
+    { "role": "assistant", "content": "..." }
+  ],
+  "existingContext": { "city": null, "persona": null, "occasion": null },
+  "knownVenues": []
+}
+```
+
+**SSE Events**:
+```
+data: Here's what I found:\n\n
+data:  Three\n\n
+data:  solid\n\n
+data:  options.\n\n
+data: [VENUES][{"id":"ChIJ...","name":"...","address":"...","rating":4.5,...}]\n\n
+```
+
+Text tokens stream individually. The final event (if venues found) is prefixed with `[VENUES]` and contains a JSON array of up to 3 venues.
+
+---
+
+### Weather
+
+**Endpoint**: `GET /api/v2/weather/forecast`
+
+**Query Parameters**: `zip=02101&date=2026-06-15`
+
+**Response**: Weather forecast object for the given ZIP + date.
+
+---
+
+### Feedback
+
+**Endpoint**: `POST /api/v2/feedback`
+
+**Request Body**:
+```json
+{
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "message": "Love the app! Could use more outdoor venues.",
+  "rating": 5
+}
+```
+
+Sends a notification email to `scout@partyscout.live` and an auto-reply to the submitter.
+
+**Response**: `200 OK`
+
+---
+
+### Authentication
+
+**Endpoint**: `POST /api/v2/auth/me`
+
+Verifies a Firebase ID token and upserts the user record.
+
+**Headers**: `Authorization: Bearer <firebase-id-token>`
+
+**Response**:
+```json
+{ "uid": "firebase-uid", "email": "user@example.com", "displayName": "Jane Smith" }
+```
+
+---
+
+### Saved Events
+
+All saved-events endpoints require `Authorization: Bearer <firebase-id-token>`.
+
+#### List Saved Events
+
+**Endpoint**: `GET /api/v2/saved-events`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "googlePlaceId": "ChIJ...",
+    "venueName": "Sky Zone",
+    "venueAddress": "123 Jump St, Boston",
+    "eventDate": "2026-06-15",
+    "guestCount": 15,
+    "partyTypes": ["active_play"],
+    "savedAt": "2026-03-15T10:30:00Z"
+  }
+]
+```
+
+#### Save an Event
+
+**Endpoint**: `POST /api/v2/saved-events`
+
+**Request Body**:
+```json
+{
+  "googlePlaceId": "ChIJ...",
+  "venueName": "Sky Zone",
+  "venueAddress": "123 Jump St, Boston",
+  "eventDate": "2026-06-15",
+  "guestCount": 15,
+  "partyTypes": ["active_play"]
+}
+```
+
+**Response**: `201 Created` with the saved event object.
+
+#### Delete a Saved Event
+
+**Endpoint**: `DELETE /api/v2/saved-events/{id}`
+
+**Response**: `204 No Content`
 
 ---
 
@@ -236,104 +298,83 @@ Get a budget estimate for a party configuration.
 
 ## Error Responses
 
-### 400 Bad Request
 ```json
-{
-  "error": "Bad Request",
-  "message": "Invalid ZIP code format",
-  "status": 400
-}
+{ "error": "Bad Request", "message": "city is required", "status": 400 }
+{ "error": "Unauthorized", "message": "Invalid or missing token", "status": 401 }
+{ "error": "Not Found", "message": "Saved event not found", "status": 404 }
+{ "error": "Internal Server Error", "message": "Failed to fetch venues", "status": 500 }
 ```
-
-### 404 Not Found
-```json
-{
-  "error": "Not Found",
-  "message": "No venues found matching criteria",
-  "status": 404
-}
-```
-
-### 500 Internal Server Error
-```json
-{
-  "error": "Internal Server Error",
-  "message": "Failed to fetch venues from Google Places",
-  "status": 500
-}
-```
-
----
-
-## Rate Limits
-
-Currently no rate limits are enforced. Future versions may implement:
-- 100 requests per minute per IP
-- 1000 requests per day per IP
 
 ---
 
 ## CORS
 
-The API allows requests from:
-- `http://localhost:5173` (local development)
-- `http://localhost:3000` (local development)
-- `https://*.run.app` (Cloud Run services)
-- `https://storage.googleapis.com` (Cloud Storage)
+Requests allowed from:
+- `http://localhost:5173` / `http://localhost:3000` (local dev)
+- `https://*.run.app` (Cloud Run)
+- `https://partyscout.app` (production)
 
 ---
 
 ## Examples
 
-### cURL - Search Venues
+### cURL — Search Venues
 
 ```bash
-curl -X POST https://partyscout-backend-869352526308.us-central1.run.app/api/v2/party-wizard/search \
+curl -X POST https://partyscout.app/api/v2/party-wizard/search \
   -H "Content-Type: application/json" \
   -d '{
     "age": 7,
     "partyTypes": ["active_play"],
     "guestCount": 15,
     "budgetMax": 500,
-    "zipCode": "94105",
+    "city": "Boston",
     "setting": "indoor",
     "maxDistanceMiles": 10
   }'
 ```
 
-### cURL - Get Party Types
+### cURL — AI Chat (SSE)
 
 ```bash
-curl https://partyscout-backend-869352526308.us-central1.run.app/api/v2/party-wizard/party-types/7
+curl -X POST https://partyscout.app/api/chat \
+  -H "Content-Type: application/json" \
+  -N \
+  -d '{
+    "message": "outdoor birthday for 8 year old in Boston",
+    "conversationHistory": [],
+    "existingContext": {},
+    "knownVenues": []
+  }'
 ```
 
-### JavaScript Fetch
+### JavaScript — Saved Events
 
 ```javascript
-const response = await fetch('/api/v2/party-wizard/search', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    age: 7,
-    partyTypes: ['active_play'],
-    guestCount: 15,
-    zipCode: '94105'
-  })
-});
+const token = await firebase.auth().currentUser.getIdToken();
 
-const data = await response.json();
-console.log(data.venues);
+const res = await fetch('/api/v2/saved-events', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const events = await res.json();
 ```
 
 ---
 
 ## Changelog
 
+### v3.0.0 (2026-03-31)
+- Added `POST /api/chat` — SSE streaming AI chat
+- Added `POST /api/v2/feedback`
+- Added `POST /api/v2/auth/me`
+- Added `GET/POST/DELETE /api/v2/saved-events`
+- Changed `zipCode` → `city` in search request
+- Added `textQuery` field for landing page free-text search
+
 ### v2.0.0 (2026-01-29)
 - Simplified party types from 12 to 6 broad categories
 - Added match score algorithm
 - Added "what's included" and "what to bring" fields
-- Added suggested add-ons
 
 ### v1.0.0 (2026-01-28)
 - Initial release with basic venue search

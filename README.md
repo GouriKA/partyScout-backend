@@ -115,6 +115,8 @@ POST /api/chat  (SSE)
     └── 4. Claude Haiku — streamResponse() → conversational text + [VENUES] payload
 ```
 
+Claude Haiku is also used in `LlmFilterService` to filter venue results by age-appropriateness before scoring.
+
 ## Email
 
 Feedback submissions send two emails via Zoho SMTP (`smtp.zoho.com:587`):

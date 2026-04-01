@@ -8,7 +8,7 @@ We take security seriously. If you discover a security vulnerability, please rep
 
 **DO NOT** open a public GitHub issue for security vulnerabilities.
 
-Instead, please email: [security contact email]
+Instead, please email: scout@partyscout.live
 
 Or use GitHub's private vulnerability reporting:
 1. Go to the repository's Security tab
@@ -39,34 +39,37 @@ Or use GitHub's private vulnerability reporting:
 
 | Data Type | Storage | Retention |
 |-----------|---------|-----------|
-| Search queries | Not stored | None |
-| Personal info | Not collected | None |
+| Search queries | Persisted for analytics | 90 days |
+| Firebase UID + email | Cloud SQL (users table) | Until account deleted |
+| Saved events | Cloud SQL | Until user deletes |
 | API keys | Secret Manager | Rotated quarterly |
 | Logs | Cloud Logging | 30 days |
 
 **We do not**:
-- Store user personal information
-- Track users across sessions
-- Share data with third parties
+- Store payment information
+- Track users across sessions beyond their own saved events
+- Share personal data with third parties
 - Use cookies for tracking
 
 ### API Security
 
 | Measure | Implementation |
 |---------|----------------|
-| HTTPS | Enforced by Cloud Run |
-| API Keys | Stored in Secret Manager |
+| HTTPS | Enforced by Cloud Run + load balancer |
+| API Keys | Stored in Google Secret Manager |
+| Auth | Firebase ID token verification (FirebaseAuthFilter) |
 | CORS | Restricted to known origins |
-| Input Validation | Server-side validation |
+| Input Validation | Server-side validation on all endpoints |
 
 ### Infrastructure Security
 
 | Layer | Protection |
 |-------|------------|
-| Compute | Cloud Run (managed, isolated) |
-| Secrets | Google Secret Manager (encrypted) |
-| Network | HTTPS only, no direct DB access |
-| Auth | Currently public (no auth required) |
+| Compute | Cloud Run (managed, isolated containers) |
+| Secrets | Google Secret Manager (encrypted at rest) |
+| Database | Cloud SQL with private IP; Cloud SQL Connector |
+| Auth | Firebase Admin SDK token verification |
+| Network | HTTPS only; no direct DB access from internet |
 
 ---
 
@@ -87,14 +90,15 @@ Or use GitHub's private vulnerability reporting:
 ### Secrets Management
 
 **Never commit secrets to git**:
-- API keys
-- Passwords
-- Service account keys
+- API keys (Google Places, Anthropic)
+- SMTP credentials
+- Firebase service account JSON
+- Database passwords
 - Any credentials
 
 **Use instead**:
-- Environment variables
-- Secret Manager
+- Google Secret Manager (production)
+- Environment variables (local dev)
 - `.gitignore` for local configs
 
 ---
@@ -105,14 +109,14 @@ Or use GitHub's private vulnerability reporting:
 
 | Gap | Risk | Mitigation Plan |
 |-----|------|-----------------|
-| No authentication | Public access | Future: Add user accounts |
-| No rate limiting | DoS possible | Future: Implement limits |
+| No rate limiting on search/chat | DoS possible | Future: Implement limits |
 | No audit logging | Limited forensics | Future: Add audit trail |
+| Chat endpoint is public | Prompt injection possible | Claude prompt design mitigates |
 
 ### Accepted Risks
 
-- Public API: Intentional for MVP
-- No user accounts: Reduces data liability
+- Venue search and chat are public (intentional — no login required for core features)
+- Saved events require Firebase auth
 
 ---
 
@@ -120,15 +124,15 @@ Or use GitHub's private vulnerability reporting:
 
 ### GDPR Considerations
 
-- No EU user data stored
-- No cookies requiring consent
-- No tracking or profiling
+- Minimal personal data stored (Firebase UID, email for saved events)
+- Users can delete saved events at any time
+- No tracking or profiling beyond auth state
 
 ### COPPA Considerations
 
-- No data collected from children
-- Parents are the users (not children)
-- No account creation required
+- Parents are the users, not children
+- No data collected directly from children
+- No account creation required for core venue search
 
 ---
 
@@ -136,7 +140,7 @@ Or use GitHub's private vulnerability reporting:
 
 | Role | Contact |
 |------|---------|
-| Security Lead | [email] |
+| Security Lead | scout@partyscout.live |
 | Project Owner | gouri.alampalli@gmail.com |
 
 ---
@@ -145,6 +149,7 @@ Or use GitHub's private vulnerability reporting:
 
 | Date | Change |
 |------|--------|
+| 2026-03-31 | Updated contact email; added auth, Cloud SQL, SMTP to security measures |
 | 2026-01-29 | Initial security policy |
 
 ---
@@ -152,5 +157,3 @@ Or use GitHub's private vulnerability reporting:
 ## Acknowledgments
 
 We appreciate security researchers who help keep PartyScout safe. Contributors will be acknowledged here (with permission).
-
-*No vulnerabilities reported yet.*
