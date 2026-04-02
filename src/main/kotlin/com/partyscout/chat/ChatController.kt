@@ -135,19 +135,27 @@ class ChatController(
     }
 
     /**
-     * Builds a diverse set of search queries from the extracted intent.
-     * Uses PersonaService queries when age is known for comprehensive coverage
-     * across all age groups and venue types. Applies indoor/outdoor prefix when specified.
+     * Builds search queries from intent.
+     * When outdoor is requested, uses outdoor-specific venue queries instead of
+     * activity-based persona queries (which return indoor venues regardless of prefix).
+     * When indoor/unspecified, uses persona queries for comprehensive coverage.
      */
     private fun buildSearchQueries(intent: ChatIntent): List<String> {
-        val settingPrefix = when (intent.indoor) {
-            false -> "outdoor "
-            true  -> "indoor "
-            null  -> ""
-        }
         val occasion = intent.occasion ?: "birthday party"
 
-        // Persona-based queries from PersonaService (covers all ages from baby to adult)
+        // Outdoor: use venue-type queries that actually return parks/farms/gardens
+        if (intent.indoor == false) {
+            return buildList {
+                add("outdoor $occasion venue")
+                add("park $occasion")
+                add("farm party venue")
+                add("outdoor event space")
+                add("garden party venue")
+                if (intent.themes.isNotEmpty()) add("outdoor ${intent.themes.first()} party")
+            }
+        }
+
+        // Indoor or unspecified: use persona-based queries for broad coverage
         val personaQueries: List<String> = when {
             intent.age != null -> personaService.getSearchQueries(intent.age).take(10)
             intent.persona != null -> {
@@ -155,17 +163,12 @@ class ChatController(
                 if (approxAge != null) personaService.getSearchQueries(approxAge).take(10) else emptyList()
             }
             else -> emptyList()
-        }.map { "$settingPrefix$it" }
+        }
 
-        // Intent-specific queries
         val intentQueries = buildList {
-            add("${settingPrefix}$occasion venue event space")
-            if (intent.themes.isNotEmpty()) {
-                add("${settingPrefix}${intent.themes.joinToString(" ")} $occasion")
-            }
-            if (intent.groupSize != null && intent.groupSize > 50) {
-                add("${settingPrefix}large event venue $occasion")
-            }
+            add("$occasion venue event space")
+            if (intent.themes.isNotEmpty()) add("${intent.themes.joinToString(" ")} $occasion")
+            if (intent.groupSize != null && intent.groupSize > 50) add("large event venue $occasion")
         }
 
         return (intentQueries + personaQueries).distinct().take(12)

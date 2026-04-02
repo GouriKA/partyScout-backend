@@ -9,7 +9,6 @@ import com.partyscout.venue.service.GooglePlacesService
 import com.partyscout.persistence.service.SearchPersistenceService
 import com.partyscout.persistence.service.VenueEnrichmentService
 import com.partyscout.persona.PersonaService
-import com.partyscout.llm.LlmFilterService
 import com.partyscout.shared.event.BudgetEstimatedEvent
 import com.partyscout.shared.event.DomainEventPublisher
 import com.partyscout.shared.event.VenueSearchedEvent
@@ -39,7 +38,6 @@ class PartySearchController(
     private val domainEventPublisher: DomainEventPublisher,
     private val searchPersistenceService: SearchPersistenceService,
     private val personaService: PersonaService,
-    private val llmFilterService: LlmFilterService,
     private val venueEnrichmentService: VenueEnrichmentService,
 ) {
     private val logger = LoggerFactory.getLogger(PartySearchController::class.java)
@@ -61,19 +59,24 @@ class PartySearchController(
             ?: return ResponseEntity.badRequest().build()
 
         // ── 3. Run search queries in parallel (max 5 concurrent) ───────────────
-        // Always add outdoor-specific queries so filtering by outdoor is never empty.
+        // Always include a few outdoor queries so the outdoor filter is never empty,
+        // but keep them minimal so indoor results still dominate for general searches.
         val outdoorQueries = listOf(
             "outdoor party venue",
-            "park birthday party",
+            "park birthday party rental",
             "farm party venue",
-            "outdoor event space",
-            "garden party venue",
-            "picnic area birthday party",
         )
-        val queries = if (!request.textQuery.isNullOrBlank()) {
-            listOf(request.textQuery) + outdoorQueries
-        } else {
-            searchQueries + outdoorQueries
+        val queries = when {
+            request.setting == "outdoor" -> listOf(
+                "outdoor party venue",
+                "park birthday party rental",
+                "farm party venue",
+                "outdoor event space",
+                "garden party venue",
+                "picnic area birthday party",
+            )
+            !request.textQuery.isNullOrBlank() -> (listOf(request.textQuery) + searchQueries + outdoorQueries).distinct()
+            else -> searchQueries + outdoorQueries
         }
         val allPlaces: List<Place> = Flux.fromIterable(queries)
             .flatMap({ query ->
@@ -100,16 +103,10 @@ class PartySearchController(
             emptyMap()
         }
 
-        // ── 6. LLM filter (max 20 venues, graceful fallback) ─────────────────────
-        val (filteredPlaces, llmFilterApplied) = llmFilterService.filter(
-            places = uniquePlaces.take(20),
-            age = request.age,
-            persona = persona.label,
-            enrichmentMap = enrichmentMap,
-        )
+        val llmFilterApplied = false
 
-        // ── 7. Map, score, apply setting/distance filters, sort ──────────────────
-        val venues = filteredPlaces
+        // ── 6. Map, score, apply setting/distance filters, sort, cap at 25 ───────
+        val venues = uniquePlaces
             .filter { isNotExcludedVenueType(it.types ?: emptyList()) }
             .mapNotNull { place ->
                 try {
@@ -122,6 +119,7 @@ class PartySearchController(
             .filter { filterBySetting(it, request.setting) }
             .filter { it.distanceInMiles <= request.maxDistanceMiles }
             .sortedByDescending { it.matchScore }
+            .take(25)
 
         val response = PartySearchResponse(
             venues = venues,

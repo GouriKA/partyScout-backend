@@ -184,7 +184,16 @@ class AnthropicService(
                             }
                             "message_stop" -> {
                                 if (!cancelled.get() && venues.isNotEmpty()) {
-                                    val venuePayload = venues.take(3).map { p ->
+                                    val filteredVenues = when (intent.indoor) {
+                                        false -> venues.filter { p ->
+                                            inferVenueSetting(p.types ?: emptyList(), p.displayName?.text ?: "") != "indoor"
+                                        }.ifEmpty { venues } // fall back to all if none match
+                                        true  -> venues.filter { p ->
+                                            inferVenueSetting(p.types ?: emptyList(), p.displayName?.text ?: "") != "outdoor"
+                                        }.ifEmpty { venues }
+                                        null  -> venues
+                                    }
+                                    val venuePayload = filteredVenues.take(3).map { p ->
                                         val photos = p.photos?.take(3)?.map { photo ->
                                             "https://places.googleapis.com/v1/${photo.name}/media?key=${googlePlacesConfig.apiKey}&maxWidthPx=400"
                                         } ?: emptyList()
