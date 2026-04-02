@@ -40,7 +40,8 @@ class AnthropicService(
           "themes": ["theme1", "theme2"],
           "indoor": true (indoor preferred) or false (outdoor preferred) or null (no preference),
           "date": "YYYY-MM-DD or null",
-          "readyToSearch": true or false
+          "readyToSearch": true or false,
+          "showVenues": true or false
         }
 
         Rules:
@@ -50,6 +51,8 @@ class AnthropicService(
         - occasion covers all party/event types, not just birthdays.
         - Set readyToSearch to true ONLY when a specific city is known AND at least one of age, persona, occasion, or themes is also known.
         - Set readyToSearch to false if city is unknown.
+        - Set showVenues to true ONLY when the user is explicitly asking for venue suggestions, recommendations, or places (e.g. "find me somewhere", "what do you suggest", "show me options", "where can I go").
+        - Set showVenues to false for follow-up questions, clarifications, logistics questions, or general conversation (e.g. "is it good for toddlers?", "how much does it cost?", "what should I bring?", "tell me more").
     """.trimIndent()
 
     // ── extractIntent ────────────────────────────────────────────────────────

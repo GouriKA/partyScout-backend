@@ -40,4 +40,5 @@ data class ChatIntent(
     val indoor: Boolean? = null,
     val date: String? = null,
     val readyToSearch: Boolean = false,
+    val showVenues: Boolean = false,
 )
