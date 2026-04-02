@@ -75,7 +75,16 @@ class PartySearchController(
                 "garden party venue",
                 "picnic area birthday party",
             )
-            !request.textQuery.isNullOrBlank() -> (listOf(request.textQuery) + searchQueries + outdoorQueries).distinct()
+            !request.textQuery.isNullOrBlank() -> {
+                // Only enrich with persona queries when this is a general party/birthday search
+                // (e.g. persona chip click). Specific category searches like "boba tea" or
+                // "pizza restaurant" should return exactly what was requested.
+                val isPartySearch = request.textQuery.contains("party", ignoreCase = true) ||
+                        request.textQuery.contains("birthday", ignoreCase = true) ||
+                        request.textQuery.contains("venues", ignoreCase = true)
+                if (isPartySearch) (listOf(request.textQuery) + searchQueries + outdoorQueries).distinct()
+                else listOf(request.textQuery)
+            }
             else -> searchQueries + outdoorQueries
         }
         val allPlaces: List<Place> = Flux.fromIterable(queries)
