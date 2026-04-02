@@ -100,9 +100,9 @@ class PartySearchController(
             .collectList()
             .block() ?: emptyList()
 
-        // ── 4. Deduplicate by place ID ───────────────────────────────────────────
-        val uniquePlaces = allPlaces.distinctBy { it.id }
-        logger.info("Text search: {} raw → {} unique places", allPlaces.size, uniquePlaces.size)
+        // ── 4. Deduplicate by place ID, cap before scoring to limit memory usage ──
+        val uniquePlaces = allPlaces.distinctBy { it.id }.take(80)
+        logger.info("Text search: {} raw → {} unique places (capped at 80)", allPlaces.size, uniquePlaces.size)
 
         // ── 5. Enrichment (batch lookup, additive — missing entries are fine) ────
         val enrichmentMap = try {
