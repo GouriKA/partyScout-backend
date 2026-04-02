@@ -52,7 +52,9 @@ class ChatController(
                     occasion = intent.occasion ?: request.existingContext.occasion,
                 )
 
-                val venues: List<Place> = if (mergedIntent.readyToSearch && mergedIntent.city != null) {
+                val venues: List<Place> = if (mergedIntent.readyToSearch &&
+                    mergedIntent.city != null &&
+                    (request.knownVenues.isEmpty() || isRequestingNewVenues(request.message))) {
                     searchVenues(mergedIntent)
                 } else {
                     emptyList()
@@ -91,6 +93,22 @@ class ChatController(
                     .trim()
             )
         }
+    }
+
+    // ── Follow-up detection ──────────────────────────────────────────────────
+
+    /**
+     * Returns true only when the user explicitly asks for new or different venues.
+     * Used to suppress a repeat venue search when the user is asking follow-up
+     * questions about venues they have already been shown.
+     */
+    private fun isRequestingNewVenues(message: String): Boolean {
+        val lc = message.lowercase()
+        return listOf(
+            "more venues", "different venues", "other venues", "other options",
+            "find more", "show more", "other places", "different places",
+            "other suggestions", "more options", "new venues", "search again"
+        ).any { lc.contains(it) }
     }
 
     // ── Venue search ─────────────────────────────────────────────────────────
