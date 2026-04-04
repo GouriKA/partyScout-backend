@@ -5,6 +5,15 @@ import org.springframework.stereotype.Service
 import kotlin.math.max
 import kotlin.math.min
 
+// Venue types that are only appropriate for young children (under ~10)
+private val CHILD_ONLY_TYPES = setOf(
+    "indoor_playground", "childrens_camp", "child_care_agency", "preschool", "playground"
+)
+// Venue types that are only appropriate for adults (18+)
+private val ADULT_ONLY_TYPES = setOf(
+    "bar", "night_club", "casino", "liquor_store", "wine_bar"
+)
+
 @Service
 class MatchScoreService(
     private val partyTypeService: PartyTypeService,
@@ -79,16 +88,33 @@ class MatchScoreService(
     }
 
     private fun calculateAgeScore(age: Int, requestedPartyTypes: List<String>, venuePlaceTypes: List<String>): Int {
-        val ageAppropriateTypes = partyTypeService.getPartyTypesForAge(age)
-        val ageAppropriateTypeIds = ageAppropriateTypes.map { it.type }
-        val matchingTypes = requestedPartyTypes.filter { it in ageAppropriateTypeIds }
-        val expectedPlaceTypes = requestedPartyTypes.flatMap { partyTypeService.getGooglePlacesTypesForPartyType(it) }.distinct()
-        val placeTypeMatch = venuePlaceTypes.any { it in expectedPlaceTypes }
+        // When party types are specified, score by how well they match age-appropriate types
+        if (requestedPartyTypes.isNotEmpty()) {
+            val ageAppropriateTypes = partyTypeService.getPartyTypesForAge(age)
+            val ageAppropriateTypeIds = ageAppropriateTypes.map { it.type }
+            val matchingTypes = requestedPartyTypes.filter { it in ageAppropriateTypeIds }
+            val expectedPlaceTypes = requestedPartyTypes.flatMap { partyTypeService.getGooglePlacesTypesForPartyType(it) }.distinct()
+            val placeTypeMatch = venuePlaceTypes.any { it in expectedPlaceTypes }
+            return when {
+                matchingTypes.isNotEmpty() && placeTypeMatch -> 25
+                matchingTypes.isNotEmpty() -> 20
+                placeTypeMatch -> 15
+                else -> 10
+            }
+        }
+
+        // No party types selected — score based on age-appropriateness of venue type.
+        // This prevents child venues from ranking equally with adult venues across all personas.
+        val isChildVenue = venuePlaceTypes.any { it in CHILD_ONLY_TYPES }
+        val isAdultVenue = venuePlaceTypes.any { it in ADULT_ONLY_TYPES }
         return when {
-            matchingTypes.isNotEmpty() && placeTypeMatch -> 25
-            matchingTypes.isNotEmpty() -> 20
-            placeTypeMatch -> 15
-            else -> 10
+            isChildVenue && age <= 10 -> 22   // child venue, right age group
+            isChildVenue && age <= 14 -> 12   // child venue, borderline — minor penalty
+            isChildVenue            ->  4    // child venue for teens/adults — penalise
+            isAdultVenue && age >= 21 -> 22  // bar/nightclub, right age group
+            isAdultVenue && age >= 18 -> 16  // young adult, borderline ok
+            isAdultVenue            ->  4    // bar/nightclub for minors — penalise
+            else                    -> 15   // age-neutral venue (escape room, bowling, etc.)
         }
     }
 
