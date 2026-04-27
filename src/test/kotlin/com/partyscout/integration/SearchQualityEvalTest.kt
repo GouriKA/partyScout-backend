@@ -1,6 +1,5 @@
 package com.partyscout.integration
 
-import com.partyscout.llm.LlmFilterService
 import com.partyscout.party.model.PartySearchRequest
 import com.partyscout.party.service.BudgetEstimationService
 import com.partyscout.party.service.MatchScoreService
@@ -41,7 +40,6 @@ class SearchQualityEvalTest {
 
     private lateinit var controller: PartySearchController
     private lateinit var googlePlacesService: GooglePlacesService
-    private lateinit var llmFilterService: LlmFilterService
     private lateinit var venueEnrichmentService: VenueEnrichmentService
 
     /** San Francisco coordinates used as the search origin */
@@ -71,7 +69,6 @@ class SearchQualityEvalTest {
     @BeforeEach
     fun setUp() {
         googlePlacesService = mockk(relaxed = true)
-        llmFilterService = mockk(relaxed = true)
         venueEnrichmentService = mockk(relaxed = true)
 
         val partyTypeService = PartyTypeService()
@@ -89,14 +86,9 @@ class SearchQualityEvalTest {
             domainEventPublisher = mockk(relaxed = true),
             searchPersistenceService = mockk(relaxed = true),
             personaService = PersonaService(),
-            llmFilterService = llmFilterService,
             venueEnrichmentService = venueEnrichmentService,
         )
 
-        // Default: LLM is unavailable — pass-through
-        every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-            Pair(firstArg<List<Place>>(), false)
-        }
         // Default: no enrichment data
         every { venueEnrichmentService.batchLookup(any()) } returns emptyMap()
         // Default: geocode returns SF
@@ -173,13 +165,6 @@ class SearchQualityEvalTest {
             val bar = nearPlace("bar-1", "The Tipsy Fox", "bar")
             val nightclub = nearPlace("club-1", "Club Neon", "night_club")
 
-            // LLM filters out the bar and nightclub for age=6
-            every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-                val places = firstArg<List<Place>>()
-                val filtered = places.filter { it.id == "farm-1" }
-                Pair(filtered, true)
-            }
-
             every { googlePlacesService.searchText(any(), any(), any()) } returns
                 Mono.just(SearchNearbyResponse(listOf(kidsFarm, bar, nightclub)))
 
@@ -201,12 +186,6 @@ class SearchQualityEvalTest {
         fun adultsPersona_playgroundsExcluded() {
             val cocktailBar = nearPlace("bar-2", "Craft Cocktail Co", "bar")
             val playground = nearPlace("play-1", "Kids Playground", "playground", "park")
-
-            every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-                val places = firstArg<List<Place>>()
-                val filtered = places.filter { it.id == "bar-2" }
-                Pair(filtered, true)
-            }
 
             every { googlePlacesService.searchText(any(), any(), any()) } returns
                 Mono.just(SearchNearbyResponse(listOf(cocktailBar, playground)))
@@ -439,9 +418,6 @@ class SearchQualityEvalTest {
             val place1 = nearPlace("p1", "Fun Place 1", "amusement_center")
             val place2 = nearPlace("p2", "Fun Place 2", "bowling_alley")
 
-            every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-                Pair(firstArg<List<Place>>(), false)
-            }
             every { googlePlacesService.searchText(any(), any(), any()) } returns
                 Mono.just(SearchNearbyResponse(listOf(place1, place2)))
 
@@ -458,12 +434,9 @@ class SearchQualityEvalTest {
         }
 
         @Test
-        @DisplayName("when LLM applied=true, response reflects this")
-        fun llmApplied_responseReflectsTrue() {
+        @DisplayName("llmFilterApplied is always false since LLM filter was removed from search")
+        fun llmFilterApplied_alwaysFalse() {
             val place = nearPlace("p1", "Top Pick", "amusement_center")
-            every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-                Pair(firstArg<List<Place>>(), true)
-            }
             every { googlePlacesService.searchText(any(), any(), any()) } returns
                 Mono.just(SearchNearbyResponse(listOf(place)))
 
@@ -474,7 +447,7 @@ class SearchQualityEvalTest {
                 textQuery = "fun",
             )
             val response = controller.searchPartyVenues(request).body!!
-            assertTrue(response.llmFilterApplied)
+            assertFalse(response.llmFilterApplied)
         }
     }
 

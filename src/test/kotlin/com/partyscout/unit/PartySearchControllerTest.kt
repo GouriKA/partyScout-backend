@@ -1,6 +1,5 @@
 package com.partyscout.unit
 
-import com.partyscout.llm.LlmFilterService
 import com.partyscout.party.model.PartySearchRequest
 import com.partyscout.party.service.BudgetEstimationService
 import com.partyscout.party.service.MatchScoreService
@@ -41,7 +40,6 @@ class PartySearchControllerTest {
     private lateinit var domainEventPublisher: DomainEventPublisher
     private lateinit var searchPersistenceService: SearchPersistenceService
     private lateinit var personaService: PersonaService
-    private lateinit var llmFilterService: LlmFilterService
     private lateinit var venueEnrichmentService: VenueEnrichmentService
 
     private val mockLocation = Location(lat = 37.7893, lng = -122.3932)
@@ -69,13 +67,7 @@ class PartySearchControllerTest {
         domainEventPublisher = mockk(relaxed = true)
         searchPersistenceService = mockk(relaxed = true)
         personaService = PersonaService()
-        llmFilterService = mockk(relaxed = true)
         venueEnrichmentService = mockk(relaxed = true)
-
-        // Default LLM passthrough — returns all venues unfiltered
-        every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-            Pair(firstArg<List<Place>>(), false)
-        }
 
         // Default enrichment — empty map
         every { venueEnrichmentService.batchLookup(any()) } returns emptyMap()
@@ -90,7 +82,6 @@ class PartySearchControllerTest {
             domainEventPublisher = domainEventPublisher,
             searchPersistenceService = searchPersistenceService,
             personaService = personaService,
-            llmFilterService = llmFilterService,
             venueEnrichmentService = venueEnrichmentService,
         )
     }
@@ -269,20 +260,17 @@ class PartySearchControllerTest {
         }
 
         @Test
-        @DisplayName("llmFilterApplied is true when LLM filters successfully")
-        fun llmFilterAppliedIsTrueWhenLlmFilters() {
+        @DisplayName("llmFilterApplied is always false since LLM filter was removed from search")
+        fun llmFilterAppliedAlwaysFalse() {
             every { googlePlacesService.geocodeCity("London") } returns Mono.just(mockLocation)
             every { googlePlacesService.searchText(any(), any(), any()) } returns
                 Mono.just(SearchNearbyResponse(listOf(amusementPlace())))
-            every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-                Pair(firstArg<List<Place>>(), true)
-            }
 
             val response = controller.searchPartyVenues(
                 PartySearchRequest(age = 10, guestCount = 10, city = "London")
             )
 
-            assertTrue(response.body!!.llmFilterApplied)
+            assertFalse(response.body!!.llmFilterApplied)
         }
 
         @Test
@@ -617,10 +605,6 @@ class PartySearchControllerTest {
             every { googlePlacesService.geocodeCity("London") } returns Mono.just(mockLocation)
             every { googlePlacesService.searchText(any(), any(), any()) } returns
                 Mono.just(SearchNearbyResponse(listOf(amusementPlace("p1"), amusementPlace("p2", "Zone 2"))))
-            // LLM unavailable — returns all venues with llmFilterApplied=false
-            every { llmFilterService.filter(any(), any(), any(), any()) } answers {
-                Pair(firstArg<List<Place>>(), false)
-            }
 
             val response = controller.searchPartyVenues(
                 PartySearchRequest(age = 10, guestCount = 10, city = "London", textQuery = "fun")
